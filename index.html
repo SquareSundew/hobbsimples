@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fortnite Locker</title><img src="https://cms-assets.unrealengine.com/AVzjeqAbLRKi3W5jq0CAvz/ovBnvmuJSxO5xtgXZcef" alt="MDN logo" />
+  
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Arial', sans-serif;
+      background: linear-gradient(rgba(0,0,0,0.85), rgba(0,0,0,0.9)),
+                  url('https://cms-assets.unrealengine.com/cm6l5gfpm05kr07my04cqgy2x/output=format:webp/cmq14ix8w37jf07ocsezv33el') center/cover no-repeat fixed;
+      color: white;
+      min-height: 100vh;
+    }
+    .container { max-width: 1300px; margin: 0 auto; padding: 20px; }
+    h1 { font-size: 3rem; margin: 20px 0; text-shadow: 0 0 10px #ffcc00; text-align: center; }
+    .tabs { display: flex; justify-content: center; gap: 15px; margin: 20px 0; }
+    .tab { padding: 12px 30px; background: rgba(0,0,0,0.7); border: 2px solid rgba(255,255,255,0.3); border-radius: 50px; cursor: pointer; transition: 0.2s; }
+    .tab:hover { background: rgba(255,204,0,0.2); }
+    .tab.active { background: #ffcc00; color: black; border-color: #ffcc00; font-weight: bold; }
+    
+    .controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin: 25px 0; }
+    .search { padding: 14px 20px; background: rgba(0,0,0,0.65); border: 2px solid rgba(255,255,255,0.3); border-radius: 50px; color: white; font-size: 1.1rem; }
+    .search-item { width: 320px; }
+    .search-conjunto { width: 250px; }
+    
+    select, button { padding: 12px 18px; background: rgba(0,0,0,0.7); border: 2px solid rgba(255,255,255,0.3); border-radius: 50px; color: white; font-size: 1rem; cursor: pointer; transition: 0.2s; }
+    button:hover { background: rgba(255, 204, 0, 0.2); border-color: #ffcc00; }
+    
+    .btn-add-conjunto { border-color: #ffcc00; color: #ffcc00; font-weight: bold; }
+    .btn-add-conjunto:hover { background: #ffcc00; color: black; }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; padding: 20px; }
+    .card { background: rgba(30,30,40,0.95); border-radius: 12px; overflow: hidden; transition: all 0.3s; border: 2px solid #555; position: relative; display: flex; flex-direction: column; padding-bottom: 10px; }
+    .card:hover { transform: scale(1.05); box-shadow: 0 0 20px #ffcc00; border-color: #ffcc00; z-index: 10; }
+    .card img { width: 100%; height: 180px; object-fit: contain; background: #111; }
+    .card p { margin: 10px 10px 5px; font-weight: bold; font-size: 1.1rem; }
+    .info { font-size: 0.85rem; color: #ccc; margin: 3px 10px; }
+    
+    .info-conjunto { color: #ffcc00; font-weight: bold; }
+    .info-tempo { color: #4dc5ff; } 
+
+    .add-btn { position: absolute; top: 10px; right: 10px; background: #ffcc00; color: black; border: none; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+    .add-btn:hover { transform: scale(1.1); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1></h1>
+
+    <div class="tabs">
+      <div class="tab active" data-tab="all">Todos os Itens</div>
+      <div class="tab" data-tab="my">Meu Vestiário (<span id="count">0</span>)</div>
+    </div>
+
+    <div class="controls">
+      <input type="text" id="search" class="search search-item" placeholder="Pesquisar Item ou Conjunto..." onkeyup="aplicarFiltros()">
+      
+      <select id="rarityFilter" onchange="aplicarFiltros()">
+        <option value="">Todas as Raridades</option>
+        <option value="Common">Comum</option>
+        <option value="Uncommon">Incomum</option>
+        <option value="Rare">Raro</option>
+        <option value="Epic">Épico</option>
+        <option value="Legendary">Lendário</option>
+      </select>
+      
+      <select id="typeFilter" onchange="aplicarFiltros()">
+        <option value="">Todos os Tipos</option>
+        <option value="outfit">Skins</option>
+        <option value="backpack">Back Bling</option>
+        <option value="emote">Emotes</option>
+        <option value="pickaxe">Picaretas</option>
+        <option value="music">Música de Lobby</option>
+      </select>
+      
+      <input type="text" id="setFilter" class="search search-conjunto" list="setOptions" placeholder="Buscar Conjunto..." oninput="aplicarFiltros()">
+      <datalist id="setOptions"></datalist>
+      
+      <button class="btn-add-conjunto" onclick="adicionarTodoConjunto()">Adicionar Conjunto</button>
+      
+      <button onclick="resetFiltros()">Limpar</button>
+      <button onclick="exportarVestiario()">Exportar</button>
+      <label style="cursor:pointer; padding:12px 18px; background:rgba(0,0,0,0.7); border:2px solid rgba(255,255,255,0.3); border-radius:50px; transition: 0.2s;">Importar<input type="file" id="importFile" accept=".json" style="display:none;" onchange="importarVestiario(event)">
+      </label>
+    </div>
+
+    <div class="grid" id="grid"></div>
+    <button id="loadMore" style="margin: 30px auto; display: block; padding: 12px 40px;">Carregar Mais</button>
+  </div>
+
+  <script>
+    // === LISTA MANUAL DE CORREÇÕES ===
+    // Adicione aqui o nome das skins da Epic que vieram bugadas da API.
+    // DICA: Escreva SEMPRE tudo em letras minúsculas!
+    const correcoesPasse = [
+      "a lâmina do vazio",
+      "outra skin bugada", 
+      "mais uma skin de passe"
+    ];
+    // ===================================
+
+    let todosItens = [];
+    let meuVestiario = JSON.parse(localStorage.getItem('meuVestiario')) || [];
+    let itensMostrados = 0;
+    const itensPorVez = 24;
+    let currentTab = 'all';
+
+    async function carregarTodos() {
+      const res = await fetch('https://fortnite-api.com/v2/cosmetics?language=pt-BR');
+      const json = await res.json();
+      todosItens = json.data.br.sort((a, b) => new Date(b.added) - new Date(a.added));
+
+      const sets = [...new Set(todosItens.filter(i => i.set).map(i => i.set.value))].sort();
+      const setDatalist = document.getElementById('setOptions');
+      sets.forEach(setName => {
+        const option = document.createElement('option');
+        option.value = setName;
+        setDatalist.appendChild(option);
+      });
+
+      mostrarMais();
+    }
+
+    function mostrarMais() {
+      const grid = document.getElementById('grid');
+      let itensParaMostrar = currentTab === 'my' ? meuVestiario : todosItens;
+
+      const termo = document.getElementById('search').value.toLowerCase().trim();
+      const raridade = document.getElementById('rarityFilter').value;
+      const tipo = document.getElementById('typeFilter').value;
+      const conjunto = document.getElementById('setFilter').value.toLowerCase().trim();
+
+      let filtrados = itensParaMostrar.filter(item => {
+        const matchSearch = !termo || 
+                            item.name.toLowerCase().includes(termo) || 
+                            (item.set && item.set.value.toLowerCase().includes(termo));
+                            
+        const matchRarity = !raridade || item.rarity.displayValue === raridade;
+        const matchType = !tipo || item.type.value === tipo;
+        const matchSet = !conjunto || (item.set && item.set.value.toLowerCase().includes(conjunto));
+        
+        return matchSearch && matchRarity && matchType && matchSet;
+      });
+
+      const fim = Math.min(itensMostrados + itensPorVez, filtrados.length);
+
+      for (let i = itensMostrados; i < fim; i++) {
+        const item = filtrados[i];
+        
+        const noVestiario = meuVestiario.some(vItem => vItem.id === item.id);
+        const btnText = currentTab === 'all' ? (noVestiario ? '✓' : '+') : '×';
+        const btnBg = (currentTab === 'all' && noVestiario) ? '#4CAF50' : '#ffcc00';
+        const btnColor = (currentTab === 'all' && noVestiario) ? 'white' : 'black';
+
+        // LÓGICA DE CAPÍTULO E TEMPORADA
+        let introText = "Data Desconhecida";
+        if (item.introduction) {
+            introText = item.introduction.text || `Capítulo ${item.introduction.chapter}, Temp. ${item.introduction.season}`;
+        }
+
+        // --- LÓGICA HÍBRIDA (API + MANUAL) ---
+        const tagsDoJogo = item.gameplayTags ? item.gameplayTags.join(' ').toLowerCase() : '';
+        const desc = item.description ? item.description.toLowerCase() : '';
+        const nomeMinusculo = item.name.toLowerCase();
+        
+        const naLoja = item.shopHistory && item.shopHistory.length > 0;
+        const noClube = tagsDoJogo.includes('crew') || desc.includes('clube fortnite');
+        
+        // Verifica se a API avisou que é passe
+        const ehPasseAPI = (item.battlepass !== undefined && item.battlepass !== null) || tagsDoJogo.includes('battlepass');
+        
+        // Verifica se O SEU CÓDIGO avisou que é passe
+        const ehPasseManual = correcoesPasse.includes(nomeMinusculo);
+        
+        let fonte = "Eventos / Grátis / Outros";
+        let corFonte = "#50c878"; // Verde
+
+        if (naLoja) {
+            fonte = "Loja de Itens";
+            corFonte = "#ff7b00"; // Laranja
+        } else if (noClube) {
+            fonte = "Clube Fortnite";
+            corFonte = "#ff4d4d"; // Vermelho
+        } else if (ehPasseAPI || ehPasseManual) { // Se a API ou VOCÊ disserem que é passe, vira passe!
+            fonte = "Passe de Batalha";
+            corFonte = "#b864ff"; // Roxo
+        }
+        // ----------------------------------------------
+
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <img src="${item.images.icon || item.images.smallIcon}" alt="${item.name}">
+          <p>${item.name}</p>
+          <div class="info">${item.rarity.displayValue} | ${item.type.displayValue}</div>
+          ${item.set ? `<div class="info info-conjunto">Conjunto: ${item.set.value}</div>` : ''}
+          <div class="info info-tempo">${introText}</div>
+          <div class="info" style="color: ${corFonte}; font-weight: bold;">${fonte}</div>
+          <button class="add-btn" style="background-color: ${btnBg}; color: ${btnColor};" onclick="handleButtonClick('${item.id}', this)">${btnText}</button>
+        `;
+        grid.appendChild(card);
+      }
+      itensMostrados = fim;
+      document.getElementById('loadMore').style.display = (itensMostrados >= filtrados.length) ? 'none' : 'block';
+      document.getElementById('count').textContent = meuVestiario.length;
+    }
+
+    function handleButtonClick(id, btnElement) {
+        if (currentTab === 'all') {
+            toggleItem(id);
+        } else {
+            removerDoVestiario(id);
+        }
+    }
+
+    function toggleItem(id) {
+      const item = todosItens.find(i => i.id === id);
+      const index = meuVestiario.findIndex(i => i.id === id);
+      
+      if (index === -1) {
+          meuVestiario.push(item);
+      } else {
+          meuVestiario.splice(index, 1);
+      }
+      
+      localStorage.setItem('meuVestiario', JSON.stringify(meuVestiario));
+      mostrarItens();
+    }
+
+    function removerDoVestiario(id) {
+      meuVestiario = meuVestiario.filter(i => i.id !== id);
+      localStorage.setItem('meuVestiario', JSON.stringify(meuVestiario));
+      mostrarItens();
+    }
+
+    function adicionarTodoConjunto() {
+      const conjuntoPesquisado = document.getElementById('setFilter').value.toLowerCase().trim();
+      
+      if (!conjuntoPesquisado) {
+        alert('Por favor, pesquise ou selecione um conjunto na barra "Buscar Conjunto" primeiro.');
+        return;
+      }
+
+      const itensDoConjunto = todosItens.filter(item => 
+        item.set && item.set.value.toLowerCase().includes(conjuntoPesquisado)
+      );
+
+      if (itensDoConjunto.length === 0) {
+        alert('Nenhum conjunto encontrado com esse termo.');
+        return;
+      }
+
+      let itensAdicionados = 0;
+
+      itensDoConjunto.forEach(item => {
+        const jaExiste = meuVestiario.some(vItem => vItem.id === item.id);
+        if (!jaExiste) {
+          meuVestiario.push(item);
+          itensAdicionados++;
+        }
+      });
+
+      if (itensAdicionados > 0) {
+        localStorage.setItem('meuVestiario', JSON.stringify(meuVestiario));
+        mostrarItens();
+        alert(`${itensAdicionados} item(ns) encontrado(s) adicionado(s) com sucesso!`);
+      } else {
+        alert('Todos os itens desta pesquisa já estão no seu vestiário.');
+      }
+    }
+
+    function mostrarItens() {
+      itensMostrados = 0;
+      const grid = document.getElementById('grid');
+      grid.innerHTML = '';
+      mostrarMais();
+    }
+
+    function aplicarFiltros() {
+      mostrarItens();
+    }
+
+    function resetFiltros() {
+      document.getElementById('search').value = '';
+      document.getElementById('rarityFilter').value = '';
+      document.getElementById('typeFilter').value = '';
+      document.getElementById('setFilter').value = '';
+      mostrarItens();
+    }
+
+    function exportarVestiario() {
+      if (meuVestiario.length === 0) {
+        alert("Seu vestiário está vazio!");
+        return;
+      }
+      const dataStr = JSON.stringify(meuVestiario, null, 2);
+      const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+      const link = document.createElement('a');
+      link.href = dataUri;
+      link.download = 'meu-vestiario-fortnite.json';
+      link.click();
+    }
+
+    function importarVestiario(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const imported = JSON.parse(e.target.result);
+          meuVestiario = imported;
+          localStorage.setItem('meuVestiario', JSON.stringify(meuVestiario));
+          alert(`Importado ${imported.length} itens!`);
+          mostrarItens();
+        } catch (err) {
+          alert("Arquivo inválido!");
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    document.getElementById('loadMore').addEventListener('click', mostrarMais);
+
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        currentTab = tab.dataset.tab;
+        mostrarItens();
+      });
+    });
+
+    carregarTodos();
+  </script>
+</body>
+</html>
