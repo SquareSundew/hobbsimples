@@ -4,15 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Fortnite Locker</title><img src="https://cms-assets.unrealengine.com/AVzjeqAbLRKi3W5jq0CAvz/ovBnvmuJSxO5xtgXZcef" alt="MDN logo" />
-  
+
   <style>
     body {
       margin: 0;
       font-family: 'Arial', sans-serif;
-      background: linear-gradient(rgba(0,0,0,0.85), rgba(0,0,0,0.9)),
-                  url('https://cms-assets.unrealengine.com/cm6l5gfpm05kr07my04cqgy2x/output=format:webp/cmq14ix8w37jf07ocsezv33el') center/cover no-repeat fixed;
+      background: #111;
       color: white;
       min-height: 100vh;
+      transition: background 0.5s ease;
     }
     .container { max-width: 1300px; margin: 0 auto; padding: 20px; }
     h1 { font-size: 3rem; margin: 20px 0; text-shadow: 0 0 10px #ffcc00; text-align: center; }
@@ -22,7 +22,7 @@
     .tab.active { background: #ffcc00; color: black; border-color: #ffcc00; font-weight: bold; }
     
     .controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin: 25px 0; }
-    .search { padding: 14px 20px; background: rgba(0,0,0,0.65); border: 2px solid rgba(255,255,255,0.3); border-radius: 50px; color: white; font-size: 1.1rem; }
+    .search { padding: 14px 20px; background: rgba(0, 0, 0, 0.527); border: 2px solid rgba(255,255,255,0.3); border-radius: 50px; color: white; font-size: 1.1rem; }
     .search-item { width: 320px; }
     .search-conjunto { width: 250px; }
     
@@ -31,11 +31,14 @@
     
     .btn-add-conjunto { border-color: #ffcc00; color: #ffcc00; font-weight: bold; }
     .btn-add-conjunto:hover { background: #ffcc00; color: black; }
+    
+    .btn-config { border-color: #4dc4ff00; color: #ffffffcb; font-weight: bold; }
+    .btn-config:hover { background: #0000009f; color: rgb(253, 253, 253); }
 
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; padding: 20px; }
-    .card { background: rgba(30,30,40,0.95); border-radius: 12px; overflow: hidden; transition: all 0.3s; border: 2px solid #555; position: relative; display: flex; flex-direction: column; padding-bottom: 10px; }
-    .card:hover { transform: scale(1.05); box-shadow: 0 0 20px #ffcc00; border-color: #ffcc00; z-index: 10; }
-    .card img { width: 100%; height: 180px; object-fit: contain; background: #111; }
+    .card { background: rgba(30, 30, 40, 0.863); border-radius: 12px; overflow: hidden; transition: all 0.3s; border: 2px solid #555; position: relative; display: flex; flex-direction: column; padding-bottom: 10px; cursor: pointer; }
+    .card:hover { transform: scale(1.05); box-shadow: 0 0 20px #ffcc0000; border-color: #ffcc0000; z-index: 10; }
+    .card img { width: 100%; height: 180px; object-fit: contain; background: #1111119d; }
     .card p { margin: 10px 10px 5px; font-weight: bold; font-size: 1.1rem; }
     .info { font-size: 0.85rem; color: #ccc; margin: 3px 10px; }
     
@@ -44,6 +47,49 @@
 
     .add-btn { position: absolute; top: 10px; right: 10px; background: #ffcc00; color: black; border: none; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
     .add-btn:hover { transform: scale(1.1); }
+
+    /* ESPAÇO INVISÍVEL NO FINAL DA PÁGINA PARA O SCROLL INFINITO */
+    #sentinela { width: 100%; height: 40px; margin-top: 20px; display: none; }
+
+    /* =========================================
+       ESTILOS DOS MODAIS (ITEM E CONFIG)
+       ========================================= */
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+    
+    .modal-content { display: flex; width: 950px; max-width: 95%; background: #16161d; border-radius: 12px; overflow: hidden; position: relative; box-shadow: 0 0 30px rgba(0,0,0,0.8); max-height: 90vh; border: 1px solid #333; }
+    .modal-left { flex: 1.2; background: radial-gradient(circle, #2b5b99 0%, #08285c 100%); display: flex; align-items: center; justify-content: center; padding: 20px; border-right: 2px solid #222; }
+    .modal-left img { width: 100%; height: 500px; object-fit: scale-down; filter: drop-shadow(0px 10px 15px rgba(0,0,0,0.6)); transition: all 0.3s ease; }
+    .modal-right { flex: 1; padding: 30px; overflow-y: auto; display: flex; flex-direction: column; background: #1e1e28; }
+    .modal-close { position: absolute; top: 15px; right: 20px; background: transparent; border: none; color: #aaa; font-size: 28px; cursor: pointer; transition: 0.2s; z-index: 10; }
+    .modal-close:hover { color: #ffcc00; transform: scale(1.1); }
+    #modalTitle { margin: 0 0 10px 0; font-size: 2rem; text-transform: uppercase; font-style: italic; font-weight: 900; line-height: 1.1; text-align: center; }
+    .modal-subtitle { display: flex; gap: 8px; justify-content: center; margin-bottom: 10px; align-items: center; font-size: 0.85rem; font-weight: bold; }
+    .badge { padding: 4px 8px; border-radius: 6px; text-transform: uppercase; }
+    .type-badge { background: transparent; color: white; border: 1px solid #777; }
+    .modal-set { color: #fff; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 5px; font-size: 0.9rem; margin-bottom: 25px; }
+    .modal-variants { margin-top: 10px; }
+    .variant-channel { margin-bottom: 20px; }
+    .variant-channel-name { font-size: 0.8rem; color: #aaa; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; margin-bottom: 12px; font-weight: bold; text-align: center; justify-content: center;}
+    .variant-channel-name::before, .variant-channel-name::after { content: ""; flex: 1; height: 1px; background: #444; margin: 0 10px; }
+    .variant-options { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+    .variant-icon { width: 55px; height: 55px; border-radius: 8px; border: 2px solid #555; cursor: pointer; object-fit: cover; transition: 0.2s; background: #222; }
+    .variant-icon:hover { border-color: #ffcc00; transform: scale(1.1); }
+    .variant-icon.active { border-color: #ffcc00; box-shadow: 0 0 12px rgba(255, 204, 0, 0.5); }
+    .modal-desc-box { text-align: center; margin: 25px 0; }
+    .modal-desc-text { font-style: italic; color: #ccc; font-size: 1.05rem; }
+    .modal-desc-sub { color: #777; font-size: 0.85rem; border-bottom: 1px dashed #555; padding-bottom: 2px; display: inline-block; margin-top: 8px; }
+    .modal-info-box { background: rgba(0,0,0,0.3); padding: 18px; border-radius: 12px; font-size: 0.9rem; border-top: 2px solid #333; margin-top: auto; }
+    .modal-info-box p { margin: 10px 0; display: flex; justify-content: space-between; align-items: center; color: #aaa; }
+    .modal-info-box strong { color: white; text-align: right; }
+
+    /* MODAL DE CONFIGURAÇÕES */
+    .config-content { width: 1000px; max-width: 95%; height: 85vh; background: #1e1e28; border-radius: 12px; position: relative; border: 1px solid #333; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 0 30px rgba(0,0,0,0.8); }
+    .config-header { padding: 25px; background: #16161d; border-bottom: 2px solid #333; text-align: center; }
+    .config-header h2 { margin: 0; color: #4dc5ff; text-transform: uppercase; font-style: italic; font-weight: 900; }
+    .config-body { padding: 20px; overflow-y: auto; display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; align-content: flex-start;}
+    .bg-option { width: 220px; height: 124px; border-radius: 8px; border: 2px solid #555; cursor: pointer; object-fit: cover; transition: 0.2s; background: #111; }
+    .bg-option:hover { border-color: #4dc5ff; transform: scale(1.05); }
+    .bg-option.active { border-color: #4dc5ff; box-shadow: 0 0 15px rgba(77, 197, 255, 0.6); }
   </style>
 </head>
 <body>
@@ -74,6 +120,7 @@
         <option value="emote">Emotes</option>
         <option value="pickaxe">Picaretas</option>
         <option value="music">Música de Lobby</option>
+        <option value="loadingscreen">Tela de Carregamento</option>
       </select>
       
       <input type="text" id="setFilter" class="search search-conjunto" list="setOptions" placeholder="Buscar Conjunto..." oninput="aplicarFiltros()">
@@ -81,52 +128,317 @@
       
       <button class="btn-add-conjunto" onclick="adicionarTodoConjunto()">Adicionar Conjunto</button>
       
-      <button onclick="resetFiltros()">Limpar</button>
+      <button class="btn-config" onclick="abrirConfiguracoes()">Configurações</button>
+      
+      <button onclick="resetFiltros()">Limpar Filtro</button>
       <button onclick="exportarVestiario()">Exportar</button>
       <label style="cursor:pointer; padding:12px 18px; background:rgba(0,0,0,0.7); border:2px solid rgba(255,255,255,0.3); border-radius:50px; transition: 0.2s;">Importar<input type="file" id="importFile" accept=".json" style="display:none;" onchange="importarVestiario(event)">
       </label>
     </div>
 
     <div class="grid" id="grid"></div>
-    <button id="loadMore" style="margin: 30px auto; display: block; padding: 12px 40px;">Carregar Mais</button>
+    
+    <!-- SUBSTITUÍMOS O BOTÃO POR UM SENSOR DE SCROLL -->
+    <div id="sentinela"></div>
+  </div>
+
+  <!-- MODAL DE ITEM -->
+  <div id="modalOverlay" class="modal-overlay" onclick="fecharModal(event)">
+    <div class="modal-content" onclick="event.stopPropagation()">
+      <button class="modal-close" onclick="fecharModal(event)">&times;</button>
+      <div class="modal-left"><img id="modalMainImg" src="" alt="Render do Modelo"></div>
+      <div class="modal-right">
+        <h2 id="modalTitle">NOME DA SKIN</h2>
+        <div class="modal-subtitle"><span id="modalRarity" class="badge">RARIDADE</span><span id="modalType" class="badge type-badge">TIPO</span></div>
+        <div id="modalSet" class="modal-set"></div>
+        <div id="modalVariants" class="modal-variants"></div>
+        <div class="modal-desc-box"><div id="modalDesc" class="modal-desc-text"></div><div class="modal-desc-sub"></div></div>
+        <div class="modal-info-box">
+          <p><span>Fonte:</span> <strong id="modalSource"></strong></p>
+          <p><span>No Jogo desde:</span> <strong id="modalSeason"></strong></p>
+          <p><span>Data de lançamento:</span> <strong id="modalDate"></strong></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE CONFIGURAÇÕES -->
+  <div id="configModalOverlay" class="modal-overlay" onclick="fecharConfiguracoes(event)">
+    <div class="config-content" onclick="event.stopPropagation()">
+      <button class="modal-close" onclick="fecharConfiguracoes(event)">&times;</button>
+      <div class="config-header">
+        <h2>Escolher Fundo de Tela</h2>
+        <p style="color:#aaa; font-size:1rem; margin-top:8px;">Selecione uma Tela de Carregamento oficial do jogo para personalizar o seu Vestiário.</p>
+      </div>
+      <div class="config-body" id="bgOptionsGrid"></div>
+    </div>
   </div>
 
   <script>
-    // === LISTA MANUAL DE CORREÇÕES ===
-    // Adicione aqui o nome das skins da Epic que vieram bugadas da API.
-    // DICA: Escreva SEMPRE tudo em letras minúsculas!
-    const correcoesPasse = [
-      "a lâmina do vazio",
-      "outra skin bugada", 
-      "mais uma skin de passe"
-    ];
-    // ===================================
+    const fundoPadrao = "https://cms-assets.unrealengine.com/cm6l5gfpm05kr07my04cqgy2x/output=format:webp/cmq14ix8w37jf07ocsezv33el";
+    let meuFundoAtual = localStorage.getItem('fundoVestiario') || fundoPadrao;
+
+    function aplicarFundoCSS(url) {
+        document.body.style.background = `linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.5)), url('${url}') center/cover no-repeat fixed`;
+    }
+    aplicarFundoCSS(meuFundoAtual);
+
+    const conjuntosLoja = ["verão de alto risco"];
+    const conjuntosPasse = ["inovação na ilha"];
+    const conjuntosClube = ["lebre ligeira"];
+    const conjuntosGratis = []; 
+
+    const itensLoja = [];
+    const itensPasse = ["a lâmina do vazio", "jules de elite", "símbolo dos sete"]; 
+    const itensClube = [];
+    const itensGratis = ["quadro de extração da slone", "sombrinha do elemental de ar"]; 
+
+    const manualRenders = {
+      "Character_TideCompost": [
+          "https://fortnite-api.com/images/cosmetics/br/newdisplayassets/979530a49e692da6/renderimage_0.png",
+          "https://fortnite-api.com/images/cosmetics/br/newdisplayassets/979530a49e692da6/renderimage_1.png",
+          "https://fortnite-api.com/images/cosmetics/br/newdisplayassets/979530a49e692da6/renderimage_2.png",
+          "https://fortnite-api.com/images/cosmetics/br/newdisplayassets/979530a49e692da6/renderimage_3.png",
+          "https://fortnite-api.com/images/cosmetics/br/newdisplayassets/979530a49e692da6/renderimage_4.png",
+      ],
+      "Character_BeaverStage": [
+          "https://fortnite-api.com/images/cosmetics/br/character_beaverstage/featured.png",
+          "https://fortnite-api.com/images/cosmetics/br/newdisplayassets/411b9519a5c3b036/renderimage_1.png"
+      ],
+    };
 
     let todosItens = [];
     let meuVestiario = JSON.parse(localStorage.getItem('meuVestiario')) || [];
     let itensMostrados = 0;
-    const itensPorVez = 24;
+    
+    // Para encher melhor a tela antes de pedir mais rolagem
+    const itensPorVez = 48; 
     let currentTab = 'all';
 
     async function carregarTodos() {
-      const res = await fetch('https://fortnite-api.com/v2/cosmetics?language=pt-BR');
-      const json = await res.json();
-      todosItens = json.data.br.sort((a, b) => new Date(b.added) - new Date(a.added));
+      try {
+        const res = await fetch('https://fortnite-api.com/v2/cosmetics?language=pt-BR');
+        const json = await res.json();
+        
+        if (!json.data || !json.data.br) {
+            console.log("Erro na estrutura da API.");
+            return;
+        }
 
-      const sets = [...new Set(todosItens.filter(i => i.set).map(i => i.set.value))].sort();
-      const setDatalist = document.getElementById('setOptions');
-      sets.forEach(setName => {
-        const option = document.createElement('option');
-        option.value = setName;
-        setDatalist.appendChild(option);
-      });
+        todosItens = json.data.br.sort((a, b) => new Date(b.added || 0) - new Date(a.added || 0));
 
-      mostrarMais();
+        const sets = [...new Set(todosItens.filter(i => i.set && i.set.value).map(i => i.set.value))].sort();
+        const setDatalist = document.getElementById('setOptions');
+        sets.forEach(setName => {
+          const option = document.createElement('option');
+          option.value = setName;
+          setDatalist.appendChild(option);
+        });
+
+        mostrarMais();
+      } catch (error) {
+        console.error("Erro no fetch da API:", error);
+      }
+    }
+
+    function abrirConfiguracoes() {
+        document.getElementById('configModalOverlay').style.display = 'flex';
+        const bgGrid = document.getElementById('bgOptionsGrid');
+        
+        if (todosItens.length === 0) {
+            bgGrid.innerHTML = '<p style="color:#ffcc00; font-size: 1.1rem; text-align: center; width: 100%; margin-top: 50px;">Baixando dados do Fortnite... Feche, aguarde alguns segundos e abra novamente!</p>';
+            return;
+        }
+
+        if (bgGrid.children.length > 5) return; 
+
+        const telas = todosItens.filter(i => {
+            if (!i.type) return false;
+            const tipoValue = i.type.value ? i.type.value.toLowerCase() : '';
+            const backendValue = i.type.backendValue ? i.type.backendValue : '';
+            return tipoValue === 'loadingscreen' || backendValue === 'AthenaLoadingScreen';
+        });
+
+        let html = `<img src="${fundoPadrao}" class="bg-option ${meuFundoAtual === fundoPadrao ? 'active' : ''}" onclick="mudarFundoLocker('${fundoPadrao}', this)" title="Fundo Padrão">`;
+
+        telas.forEach(tela => {
+            let urlHD = '';
+            if (tela.images) {
+                urlHD = (tela.images.other && tela.images.other.background) ? tela.images.other.background : (tela.images.featured || tela.images.icon);
+            }
+
+            if (urlHD) {
+                const ativo = (meuFundoAtual === urlHD) ? 'active' : '';
+                html += `<img loading="lazy" src="${urlHD}" class="bg-option ${ativo}" onclick="mudarFundoLocker('${urlHD}', this)" title="${tela.name || 'Tela de Carregamento'}">`;
+            }
+        });
+
+        bgGrid.innerHTML = html;
+    }
+
+    function fecharConfiguracoes(event) {
+        if (event) event.preventDefault();
+        document.getElementById('configModalOverlay').style.display = 'none';
+    }
+
+    function mudarFundoLocker(urlFundo, elementoImg) {
+        meuFundoAtual = urlFundo;
+        localStorage.setItem('fundoVestiario', urlFundo);
+        aplicarFundoCSS(urlFundo);
+        
+        document.querySelectorAll('.bg-option').forEach(img => img.classList.remove('active'));
+        if (elementoImg) elementoImg.classList.add('active');
+    }
+
+    function fecharModal(event) {
+      if (event) event.preventDefault();
+      document.getElementById('modalOverlay').style.display = 'none';
+    }
+
+    function abrirModal(item) {
+      document.getElementById('modalOverlay').style.display = 'flex';
+      
+      let mainImg = 'https://via.placeholder.com/150';
+      if (item.images) {
+          mainImg = item.images.renderImage || item.images.featured || item.images.icon || mainImg;
+      }
+      const modalMainImg = document.getElementById('modalMainImg');
+      modalMainImg.src = mainImg;
+      modalMainImg.onerror = null; 
+      
+      document.getElementById('modalTitle').textContent = item.name || 'Desconhecido';
+      
+      const rarityElement = document.getElementById('modalRarity');
+      rarityElement.textContent = item.rarity ? item.rarity.displayValue : 'Comum';
+      
+      const rarityVal = item.rarity ? item.rarity.value : 'common';
+      let rarityColor = "#555";
+      switch(rarityVal) {
+        case 'common': rarityColor = "#b1b1b1"; break;
+        case 'uncommon': rarityColor = "#82c91e"; break;
+        case 'rare': rarityColor = "#339af0"; break;
+        case 'epic': rarityColor = "#ae3ec9"; break;
+        case 'legendary': rarityColor = "#f59f00"; break;
+        case 'mythic': rarityColor = "#f03e3e"; break;
+      }
+      rarityElement.style.backgroundColor = rarityColor;
+      rarityElement.style.color = (rarityVal === 'common' || rarityVal === 'uncommon') ? 'black' : 'white';
+
+      document.getElementById('modalType').textContent = item.type ? item.type.displayValue : 'Desconhecido';
+      document.getElementById('modalSet').innerHTML = (item.set && item.set.value) ? `Conjunto: ${item.set.value.toUpperCase()}` : '';
+      document.getElementById('modalDesc').textContent = item.description || 'Sem descrição.';
+
+      const dataStr = item.added ? new Date(item.added).toLocaleDateString('pt-BR', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Desconhecida';
+      document.getElementById('modalDate').textContent = dataStr;
+      document.getElementById('modalSeason').textContent = (item.introduction && item.introduction.text) ? item.introduction.text : 'Desconhecido';
+      
+      const tagsDoJogo = item.gameplayTags ? item.gameplayTags.join(' ').toLowerCase() : '';
+      const descMinusculo = item.description ? item.description.toLowerCase() : '';
+      const nomeMinusculo = item.name ? item.name.toLowerCase() : '';
+      const setName = (item.set && item.set.value) ? item.set.value.toLowerCase() : '';
+      
+      const naLoja = item.shopHistory && item.shopHistory.length > 0;
+      const noClube = tagsDoJogo.includes('crew') || descMinusculo.includes('clube fortnite');
+      const ehPasseAPI = (item.battlepass !== undefined && item.battlepass !== null) || tagsDoJogo.includes('battlepass');
+      
+      const ehLojaItem = itensLoja.includes(nomeMinusculo);
+      const ehPasseItem = itensPasse.includes(nomeMinusculo);
+      const ehClubeItem = itensClube.includes(nomeMinusculo);
+      const ehGratisItem = itensGratis.includes(nomeMinusculo);
+
+      const ehLojaConjunto = conjuntosLoja.includes(setName);
+      const ehPasseConjunto = conjuntosPasse.includes(setName);
+      const ehClubeConjunto = conjuntosClube.includes(setName);
+      const ehGratisConjunto = conjuntosGratis.includes(setName);
+      
+      let fonte = "Eventos / Grátis / Outros";
+      
+      if (ehLojaItem) { fonte = "Loja de Itens"; }
+      else if (ehClubeItem) { fonte = "Clube Fortnite"; }
+      else if (ehPasseItem) { fonte = "Passe de Batalha"; }
+      else if (ehGratisItem) { fonte = "Grátis / Eventos"; }
+      else if (ehLojaConjunto) { fonte = "Loja de Itens"; }
+      else if (ehClubeConjunto) { fonte = "Clube Fortnite"; }
+      else if (ehPasseConjunto) { fonte = "Passe de Batalha"; }
+      else if (ehGratisConjunto) { fonte = "Grátis / Eventos"; }
+      else if (naLoja) { fonte = "Loja de Itens"; }
+      else if (noClube) { fonte = "Clube Fortnite"; }
+      else if (ehPasseAPI) { fonte = "Passe de Batalha"; }
+      
+      document.getElementById('modalSource').textContent = fonte;
+
+      const variantsContainer = document.getElementById('modalVariants');
+      variantsContainer.innerHTML = ''; 
+      
+      if (item.variants && item.variants.length > 0) {
+        const hdChannelDiv = document.createElement('div');
+        hdChannelDiv.className = 'variant-channel';
+        hdChannelDiv.innerHTML = `<div class="variant-channel-name">Visualização Render</div>`;
+        const hdOptionsDiv = document.createElement('div');
+        hdOptionsDiv.className = 'variant-options';
+
+        const temManual = manualRenders[item.id];
+        const temAutomatico = item.newDisplayAsset && item.newDisplayAsset.id;
+
+        if (temManual || temAutomatico) {
+            if (temManual) {
+                manualRenders[item.id].forEach((url, index) => { criarBotaoRender(url, index, hdOptionsDiv, modalMainImg); });
+            } else if (temAutomatico) {
+                for (let i = 0; i < 6; i++) {
+                    const url = `https://fortnite-api.com/images/cosmetics/br/newdisplayassets/${item.newDisplayAsset.id.toLowerCase()}/renderimage_${i}.png`;
+                    criarBotaoRender(url, i, hdOptionsDiv, modalMainImg);
+                }
+            }
+            hdChannelDiv.appendChild(hdOptionsDiv);
+            variantsContainer.appendChild(hdChannelDiv);
+        }
+
+        function criarBotaoRender(url, index, container, imgPrincipal) {
+            const btn = document.createElement('img');
+            btn.className = 'variant-icon hd-icon';
+            btn.src = url;
+            btn.title = `Render HD ${index}`;
+            btn.onerror = () => { btn.style.display = 'none'; };
+            btn.onclick = () => {
+                imgPrincipal.src = url;
+                document.querySelectorAll('.variant-icon').forEach(el => el.classList.remove('active'));
+                btn.classList.add('active');
+            };
+            container.appendChild(btn);
+        }
+
+        item.variants.forEach(v => {
+          const channelDiv = document.createElement('div');
+          channelDiv.className = 'variant-channel';
+          channelDiv.innerHTML = `<div class="variant-channel-name">${v.channel} (ÍCONES / PARTES)</div>`;
+          const optionsDiv = document.createElement('div');
+          optionsDiv.className = 'variant-options';
+          
+          v.options.forEach((opt) => {
+            const img = document.createElement('img');
+            img.src = opt.image || mainImg; 
+            img.className = 'variant-icon part-icon';
+            img.title = `Ícone: ${opt.name || 'Variante'}`;
+            
+            img.onclick = () => {
+              modalMainImg.onerror = null;
+              if (opt.image) { modalMainImg.src = opt.image; }
+              document.querySelectorAll('.variant-icon').forEach(i => i.classList.remove('active'));
+              img.classList.add('active');
+            };
+            optionsDiv.appendChild(img);
+          });
+          channelDiv.appendChild(optionsDiv);
+          variantsContainer.appendChild(channelDiv);
+        });
+      }
     }
 
     function mostrarMais() {
       const grid = document.getElementById('grid');
       let itensParaMostrar = currentTab === 'my' ? meuVestiario : todosItens;
+
+      itensParaMostrar.sort((a, b) => new Date(b.added || 0) - new Date(a.added || 0));
 
       const termo = document.getElementById('search').value.toLowerCase().trim();
       const raridade = document.getElementById('rarityFilter').value;
@@ -134,13 +446,15 @@
       const conjunto = document.getElementById('setFilter').value.toLowerCase().trim();
 
       let filtrados = itensParaMostrar.filter(item => {
-        const matchSearch = !termo || 
-                            item.name.toLowerCase().includes(termo) || 
-                            (item.set && item.set.value.toLowerCase().includes(termo));
-                            
-        const matchRarity = !raridade || item.rarity.displayValue === raridade;
-        const matchType = !tipo || item.type.value === tipo;
-        const matchSet = !conjunto || (item.set && item.set.value.toLowerCase().includes(conjunto));
+        const itemNome = item.name ? item.name.toLowerCase() : '';
+        const itemConjunto = (item.set && item.set.value) ? item.set.value.toLowerCase() : '';
+        const itemRaridade = item.rarity ? item.rarity.displayValue : '';
+        const itemTipo = item.type ? item.type.value : '';
+
+        const matchSearch = !termo || itemNome.includes(termo) || itemConjunto.includes(termo);
+        const matchRarity = !raridade || itemRaridade === raridade;
+        const matchType = !tipo || itemTipo === tipo;
+        const matchSet = !conjunto || itemConjunto.includes(conjunto);
         
         return matchSearch && matchRarity && matchType && matchSet;
       });
@@ -155,77 +469,101 @@
         const btnBg = (currentTab === 'all' && noVestiario) ? '#4CAF50' : '#ffcc00';
         const btnColor = (currentTab === 'all' && noVestiario) ? 'white' : 'black';
 
-        // LÓGICA DE CAPÍTULO E TEMPORADA
         let introText = "Data Desconhecida";
-        if (item.introduction) {
-            introText = item.introduction.text || `Capítulo ${item.introduction.chapter}, Temp. ${item.introduction.season}`;
+        if (item.introduction && item.introduction.text) {
+            introText = item.introduction.text;
         }
 
-        // --- LÓGICA HÍBRIDA (API + MANUAL) ---
         const tagsDoJogo = item.gameplayTags ? item.gameplayTags.join(' ').toLowerCase() : '';
         const desc = item.description ? item.description.toLowerCase() : '';
-        const nomeMinusculo = item.name.toLowerCase();
+        const nomeMinusculo = item.name ? item.name.toLowerCase() : '';
+        const setName = (item.set && item.set.value) ? item.set.value.toLowerCase() : '';
         
         const naLoja = item.shopHistory && item.shopHistory.length > 0;
         const noClube = tagsDoJogo.includes('crew') || desc.includes('clube fortnite');
-        
-        // Verifica se a API avisou que é passe
         const ehPasseAPI = (item.battlepass !== undefined && item.battlepass !== null) || tagsDoJogo.includes('battlepass');
         
-        // Verifica se O SEU CÓDIGO avisou que é passe
-        const ehPasseManual = correcoesPasse.includes(nomeMinusculo);
+        const ehLojaItem = itensLoja.includes(nomeMinusculo);
+        const ehPasseItem = itensPasse.includes(nomeMinusculo);
+        const ehClubeItem = itensClube.includes(nomeMinusculo);
+        const ehGratisItem = itensGratis.includes(nomeMinusculo);
+
+        const ehLojaConjunto = conjuntosLoja.includes(setName);
+        const ehPasseConjunto = conjuntosPasse.includes(setName);
+        const ehClubeConjunto = conjuntosClube.includes(setName);
+        const ehGratisConjunto = conjuntosGratis.includes(setName);
         
         let fonte = "Eventos / Grátis / Outros";
-        let corFonte = "#50c878"; // Verde
+        let corFonte = "#50c878"; 
 
-        if (naLoja) {
-            fonte = "Loja de Itens";
-            corFonte = "#ff7b00"; // Laranja
-        } else if (noClube) {
-            fonte = "Clube Fortnite";
-            corFonte = "#ff4d4d"; // Vermelho
-        } else if (ehPasseAPI || ehPasseManual) { // Se a API ou VOCÊ disserem que é passe, vira passe!
-            fonte = "Passe de Batalha";
-            corFonte = "#b864ff"; // Roxo
-        }
-        // ----------------------------------------------
+        if (ehLojaItem) { fonte = "Loja de Itens"; corFonte = "#ff7b00"; }
+        else if (ehClubeItem) { fonte = "Clube Fortnite"; corFonte = "#ff4d4d"; }
+        else if (ehPasseItem) { fonte = "Passe de Batalha"; corFonte = "#b864ff"; }
+        else if (ehGratisItem) { fonte = "Grátis / Eventos"; corFonte = "#50c878"; }
+        else if (ehLojaConjunto) { fonte = "Loja de Itens"; corFonte = "#ff7b00"; }
+        else if (ehClubeConjunto) { fonte = "Clube Fortnite"; corFonte = "#ff4d4d"; }
+        else if (ehPasseConjunto) { fonte = "Passe de Batalha"; corFonte = "#b864ff"; }
+        else if (ehGratisConjunto) { fonte = "Grátis / Eventos"; corFonte = "#50c878"; }
+        else if (naLoja) { fonte = "Loja de Itens"; corFonte = "#ff7b00"; }
+        else if (noClube) { fonte = "Clube Fortnite"; corFonte = "#ff4d4d"; }
+        else if (ehPasseAPI) { fonte = "Passe de Batalha"; corFonte = "#b864ff"; }
+
+        const itemImgUrl = (item.images && (item.images.icon || item.images.smallIcon)) ? (item.images.icon || item.images.smallIcon) : 'https://via.placeholder.com/150';
+        const itemRarityVal = item.rarity ? item.rarity.displayValue : 'Comum';
+        const itemTypeVal = item.type ? item.type.displayValue : 'Desconhecido';
+        const itemNameStr = item.name || 'Desconhecido';
 
         const card = document.createElement('div');
         card.className = 'card';
+        card.onclick = () => abrirModal(item); 
+        
         card.innerHTML = `
-          <img src="${item.images.icon || item.images.smallIcon}" alt="${item.name}">
-          <p>${item.name}</p>
-          <div class="info">${item.rarity.displayValue} | ${item.type.displayValue}</div>
-          ${item.set ? `<div class="info info-conjunto">Conjunto: ${item.set.value}</div>` : ''}
+          <img loading="lazy" src="${itemImgUrl}" alt="${itemNameStr}">
+          <p>${itemNameStr}</p>
+          <div class="info">${itemRarityVal} | ${itemTypeVal}</div>
+          ${(item.set && item.set.value) ? `<div class="info info-conjunto">Conjunto: ${item.set.value}</div>` : ''}
           <div class="info info-tempo">${introText}</div>
           <div class="info" style="color: ${corFonte}; font-weight: bold;">${fonte}</div>
-          <button class="add-btn" style="background-color: ${btnBg}; color: ${btnColor};" onclick="handleButtonClick('${item.id}', this)">${btnText}</button>
+          <button class="add-btn" style="background-color: ${btnBg}; color: ${btnColor};" onclick="event.stopPropagation(); handleButtonClick('${item.id}', this)">${btnText}</button>
         `;
         grid.appendChild(card);
       }
+      
       itensMostrados = fim;
-      document.getElementById('loadMore').style.display = (itensMostrados >= filtrados.length) ? 'none' : 'block';
+      
+      // Controla a sentinela do Scroll Infinito
+      const sentinela = document.getElementById('sentinela');
+      if (itensMostrados >= filtrados.length) {
+          sentinela.style.display = 'none';
+      } else {
+          sentinela.style.display = 'block';
+      }
+      
       document.getElementById('count').textContent = meuVestiario.length;
     }
 
-    function handleButtonClick(id, btnElement) {
-        if (currentTab === 'all') {
-            toggleItem(id);
-        } else {
-            removerDoVestiario(id);
+    // =========================================================================
+    // IMPLEMENTAÇÃO DO SCROLL INFINITO
+    // =========================================================================
+    const observadorScroll = new IntersectionObserver((entradas) => {
+        // Se a nossa div "invisível" lá no fundo aparecer na tela do usuário, carrega mais!
+        if (entradas[0].isIntersecting) {
+            mostrarMais();
         }
+    }, { rootMargin: '200px' }); // O "rootMargin" faz ele carregar um pouquinho ANTES de você chegar no fundo, para ficar sem atrasos!
+
+    // Manda o código ficar de olho na sentinela
+    observadorScroll.observe(document.getElementById('sentinela'));
+
+
+    function handleButtonClick(id, btnElement) {
+        if (currentTab === 'all') { toggleItem(id); } else { removerDoVestiario(id); }
     }
 
     function toggleItem(id) {
       const item = todosItens.find(i => i.id === id);
       const index = meuVestiario.findIndex(i => i.id === id);
-      
-      if (index === -1) {
-          meuVestiario.push(item);
-      } else {
-          meuVestiario.splice(index, 1);
-      }
-      
+      if (index === -1) { meuVestiario.push(item); } else { meuVestiario.splice(index, 1); }
       localStorage.setItem('meuVestiario', JSON.stringify(meuVestiario));
       mostrarItens();
     }
@@ -238,51 +576,29 @@
 
     function adicionarTodoConjunto() {
       const conjuntoPesquisado = document.getElementById('setFilter').value.toLowerCase().trim();
-      
       if (!conjuntoPesquisado) {
-        alert('Por favor, pesquise ou selecione um conjunto na barra "Buscar Conjunto" primeiro.');
-        return;
+        alert('Por favor, pesquise ou selecione um conjunto na barra "Buscar Conjunto" primeiro.'); return;
       }
-
       const itensDoConjunto = todosItens.filter(item => 
-        item.set && item.set.value.toLowerCase().includes(conjuntoPesquisado)
+        item.set && item.set.value && item.set.value.toLowerCase().includes(conjuntoPesquisado)
       );
-
       if (itensDoConjunto.length === 0) {
-        alert('Nenhum conjunto encontrado com esse termo.');
-        return;
+        alert('Nenhum conjunto encontrado com esse termo.'); return;
       }
-
       let itensAdicionados = 0;
-
       itensDoConjunto.forEach(item => {
         const jaExiste = meuVestiario.some(vItem => vItem.id === item.id);
-        if (!jaExiste) {
-          meuVestiario.push(item);
-          itensAdicionados++;
-        }
+        if (!jaExiste) { meuVestiario.push(item); itensAdicionados++; }
       });
-
       if (itensAdicionados > 0) {
         localStorage.setItem('meuVestiario', JSON.stringify(meuVestiario));
         mostrarItens();
         alert(`${itensAdicionados} item(ns) encontrado(s) adicionado(s) com sucesso!`);
-      } else {
-        alert('Todos os itens desta pesquisa já estão no seu vestiário.');
-      }
+      } else { alert('Todos os itens desta pesquisa já estão no seu vestiário.'); }
     }
 
-    function mostrarItens() {
-      itensMostrados = 0;
-      const grid = document.getElementById('grid');
-      grid.innerHTML = '';
-      mostrarMais();
-    }
-
-    function aplicarFiltros() {
-      mostrarItens();
-    }
-
+    function mostrarItens() { itensMostrados = 0; document.getElementById('grid').innerHTML = ''; mostrarMais(); }
+    function aplicarFiltros() { mostrarItens(); }
     function resetFiltros() {
       document.getElementById('search').value = '';
       document.getElementById('rarityFilter').value = '';
@@ -292,16 +608,11 @@
     }
 
     function exportarVestiario() {
-      if (meuVestiario.length === 0) {
-        alert("Seu vestiário está vazio!");
-        return;
-      }
+      if (meuVestiario.length === 0) { alert("Seu vestiário está vazio!"); return; }
       const dataStr = JSON.stringify(meuVestiario, null, 2);
       const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
       const link = document.createElement('a');
-      link.href = dataUri;
-      link.download = 'meu-vestiario-fortnite.json';
-      link.click();
+      link.href = dataUri; link.download = 'meu-vestiario-fortnite.json'; link.click();
     }
 
     function importarVestiario(event) {
@@ -315,14 +626,10 @@
           localStorage.setItem('meuVestiario', JSON.stringify(meuVestiario));
           alert(`Importado ${imported.length} itens!`);
           mostrarItens();
-        } catch (err) {
-          alert("Arquivo inválido!");
-        }
+        } catch (err) { alert("Arquivo inválido!"); }
       };
       reader.readAsText(file);
     }
-
-    document.getElementById('loadMore').addEventListener('click', mostrarMais);
 
     document.querySelectorAll('.tab').forEach(tab => {
       tab.addEventListener('click', () => {
