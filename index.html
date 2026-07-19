@@ -32,8 +32,8 @@
     .btn-add-conjunto { border-color: #ffcc00; color: #ffcc00; font-weight: bold; }
     .btn-add-conjunto:hover { background: #ffcc00; color: black; }
     
-    .btn-config { border-color: #4dc4ff00; color: #ffffffcb; font-weight: bold; }
-    .btn-config:hover { background: #0000009f; color: rgb(253, 253, 253); }
+    .btn-config { border-color: #4dc4ff00; color: #ffffff; font-weight: bold; }
+    .btn-config:hover { background: #4dc4ff00; color: rgb(255, 255, 255); }
 
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; padding: 20px; }
     .card { background: rgba(30, 30, 40, 0.863); border-radius: 12px; overflow: hidden; transition: all 0.3s; border: 2px solid #555; position: relative; display: flex; flex-direction: column; padding-bottom: 10px; cursor: pointer; }
@@ -44,6 +44,7 @@
     
     .info-conjunto { color: #ffcc00; font-weight: bold; }
     .info-tempo { color: #4dc5ff; } 
+    .info-preco { color: #4dc5ff; font-weight: bold; display: flex; align-items: center; gap: 4px; }
 
     .add-btn { position: absolute; top: 10px; right: 10px; background: #ffcc00; color: black; border: none; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
     .add-btn:hover { transform: scale(1.1); }
@@ -99,6 +100,7 @@
     <div class="tabs">
       <div class="tab active" data-tab="all">Todos os Itens</div>
       <div class="tab" data-tab="my">Meu Vestiário (<span id="count">0</span>)</div>
+      <div class="tab" data-tab="shop">Loja</div>
     </div>
 
     <div class="controls">
@@ -136,9 +138,10 @@
       </label>
     </div>
 
+    <div class="tabs" id="lojaSecoes" style="display:none; flex-wrap: wrap;"></div>
+
     <div class="grid" id="grid"></div>
     
-    <!-- SUBSTITUÍMOS O BOTÃO POR UM SENSOR DE SCROLL -->
     <div id="sentinela"></div>
   </div>
 
@@ -157,6 +160,7 @@
           <p><span>Fonte:</span> <strong id="modalSource"></strong></p>
           <p><span>No Jogo desde:</span> <strong id="modalSeason"></strong></p>
           <p><span>Data de lançamento:</span> <strong id="modalDate"></strong></p>
+          <p id="modalPrecoLinha" style="display:none;"><span id="modalPrecoLabel">Preço na loja:</span> <strong id="modalPreco"></strong></p>
         </div>
       </div>
     </div>
@@ -193,27 +197,148 @@
     const itensClube = [];
     const itensGratis = ["quadro de extração da slone", "sombrinha do elemental de ar"]; 
 
-    const manualRenders = {
-      "Character_TideCompost": [
-          "https://fortnite-api.com/images/cosmetics/br/newdisplayassets/979530a49e692da6/renderimage_0.png",
-          "https://fortnite-api.com/images/cosmetics/br/newdisplayassets/979530a49e692da6/renderimage_1.png",
-          "https://fortnite-api.com/images/cosmetics/br/newdisplayassets/979530a49e692da6/renderimage_2.png",
-          "https://fortnite-api.com/images/cosmetics/br/newdisplayassets/979530a49e692da6/renderimage_3.png",
-          "https://fortnite-api.com/images/cosmetics/br/newdisplayassets/979530a49e692da6/renderimage_4.png",
-      ],
-      "Character_BeaverStage": [
-          "https://fortnite-api.com/images/cosmetics/br/character_beaverstage/featured.png",
-          "https://fortnite-api.com/images/cosmetics/br/newdisplayassets/411b9519a5c3b036/renderimage_1.png"
-      ],
-    };
-
     let todosItens = [];
     let meuVestiario = JSON.parse(localStorage.getItem('meuVestiario')) || [];
     let itensMostrados = 0;
-    
-    // Para encher melhor a tela antes de pedir mais rolagem
     const itensPorVez = 48; 
     let currentTab = 'all';
+
+    // === LOJA DE HOJE ===
+    let itensLojaHoje = [];      // itens à venda hoje, cada um com _precoFinal/_precoRegular/_bundle/_secao anexados
+    let idsNaLojaHoje = new Set(); // ids que estão na loja HOJE, com certeza (cruzado com o /v2/shop real)
+    let dadosLojaPorItem = {};   // id -> { _precoFinal, _precoRegular, _bundle, _newDisplayAsset, _secao }, pra usar em QUALQUER aba
+    let secoesLoja = [];         // [{ nome, index }] únicos, na ordem em que a loja os organiza
+    let secaoLojaAtiva = null;   // null = "Todas"
+    let lojaHojeCarregada = false;
+
+    // === HISTÓRICO DE LOJA (persistente, salvo no navegador) ===
+    // Toda vez que a loja carrega, guardamos o último preço/data visto de cada item aqui.
+    // Isso NÃO recupera o passado (a API só mostra a loja de hoje) — mas a partir de agora,
+    // cada item que passar pela loja fica registrado, mesmo depois de sair de circulação.
+    const CHAVE_HISTORICO_LOJA = 'historicoLojaFortnite';
+
+    function carregarHistoricoLoja() {
+      try {
+        return JSON.parse(localStorage.getItem(CHAVE_HISTORICO_LOJA)) || {};
+      } catch (e) {
+        return {};
+      }
+    }
+
+    let historicoLoja = carregarHistoricoLoja(); // id -> { precoFinal, precoRegular, secao, data, nome }
+
+    function salvarHistoricoLoja() {
+      try {
+        localStorage.setItem(CHAVE_HISTORICO_LOJA, JSON.stringify(historicoLoja));
+      } catch (e) {
+        console.warn('Não foi possível salvar o histórico da loja (localStorage cheio ou bloqueado).', e);
+      }
+    }
+
+    function registrarNoHistoricoLoja(itens) {
+      const hoje = new Date().toISOString().slice(0, 10);
+      itens.forEach(item => {
+        historicoLoja[item.id] = {
+          precoFinal: item._precoFinal,
+          precoRegular: item._precoRegular,
+          secao: item._secao,
+          data: hoje,
+          nome: item.name
+        };
+      });
+      salvarHistoricoLoja();
+    }
+    let lojaHojeCarregando = false;
+
+    async function carregarLojaHoje() {
+      if (lojaHojeCarregada || lojaHojeCarregando) return;
+      lojaHojeCarregando = true;
+      try {
+        const res = await fetch('https://fortnite-api.com/v2/shop?language=pt-BR');
+        const json = await res.json();
+        const entradas = (json.data && json.data.entries) || [];
+        const itens = [];
+        const secoesMap = new Map();
+
+        entradas.forEach(entrada => {
+          const listaItens = entrada.brItems || entrada.br || [];
+          if (listaItens.length === 0) return;
+
+          // A entrada do Passe de Batalha vem com dezenas de itens (todas as recompensas do passe)
+          // agrupados numa única "oferta". Isso não é uma compra individual de item — é só a
+          // vitrine do passe. Se deixar passar, todo item do passe fica marcado como "na loja".
+          const devName = (entrada.devName || entrada.dev_name || '').toLowerCase();
+          const offerId = (entrada.offerId || entrada.offer_id || '').toLowerCase();
+          const nomeBundleEntrada = (entrada.bundle && entrada.bundle.name) ? entrada.bundle.name.toLowerCase() : '';
+          const ehPasseDeBatalha = devName.includes('battlepass') || devName.includes('battle_pass')
+            || offerId.includes('battlepass') || nomeBundleEntrada.includes('passe de batalha')
+            || listaItens.length > 10; // rede de segurança: nenhum pacote de loja normal tem mais que isso
+
+          if (ehPasseDeBatalha) return;
+
+          const nomeSecao = (entrada.layout && entrada.layout.name) ? entrada.layout.name : 'Outros';
+          const indexSecao = (entrada.layout && typeof entrada.layout.index === 'number') ? entrada.layout.index : 999;
+          if (!secoesMap.has(nomeSecao)) secoesMap.set(nomeSecao, indexSecao);
+
+          listaItens.forEach(itemBase => {
+            itens.push(Object.assign({}, itemBase, {
+              _precoFinal: entrada.finalPrice,
+              _precoRegular: entrada.regularPrice,
+              _bundle: listaItens.length > 1,
+              _newDisplayAsset: entrada.newDisplayAsset || null,
+              _secao: nomeSecao
+            }));
+          });
+        });
+
+        itensLojaHoje = itens;
+        idsNaLojaHoje = new Set(itens.map(i => i.id));
+        dadosLojaPorItem = {};
+        itens.forEach(i => {
+          dadosLojaPorItem[i.id] = {
+            _precoFinal: i._precoFinal,
+            _precoRegular: i._precoRegular,
+            _bundle: i._bundle,
+            _newDisplayAsset: i._newDisplayAsset,
+            _secao: i._secao
+          };
+        });
+        registrarNoHistoricoLoja(itens);
+        secoesLoja = [...secoesMap.entries()]
+          .sort((a, b) => a[1] - b[1])
+          .map(([nome]) => nome);
+        lojaHojeCarregada = true;
+        montarSecoesLoja();
+      } catch (error) {
+        console.error("Erro ao carregar a loja de hoje:", error);
+        const grid = document.getElementById('grid');
+        if (currentTab === 'shop') {
+          grid.innerHTML = '<p style="color:#ff7b7b; text-align:center; width:100%; margin-top:40px;">Não foi possível carregar a loja de hoje. Tente novamente mais tarde.</p>';
+        }
+      } finally {
+        lojaHojeCarregando = false;
+      }
+    }
+
+    function montarSecoesLoja() {
+      const container = document.getElementById('lojaSecoes');
+      if (secoesLoja.length <= 1) { container.innerHTML = ''; container.style.display = 'none'; return; }
+
+      let html = `<div class="tab ${secaoLojaAtiva === null ? 'active' : ''}" data-secao="">Tudo</div>`;
+      secoesLoja.forEach(nome => {
+        html += `<div class="tab ${secaoLojaAtiva === nome ? 'active' : ''}" data-secao="${nome}">${nome}</div>`;
+      });
+      container.innerHTML = html;
+
+      container.querySelectorAll('.tab').forEach(pill => {
+        pill.addEventListener('click', () => {
+          secaoLojaAtiva = pill.dataset.secao || null;
+          container.querySelectorAll('.tab').forEach(p => p.classList.remove('active'));
+          pill.classList.add('active');
+          mostrarItens();
+        });
+      });
+    }
 
     async function carregarTodos() {
       try {
@@ -236,6 +361,13 @@
         });
 
         mostrarMais();
+
+        // Carrega a loja de hoje em paralelo (sem travar a tela) só pra saber COM CERTEZA
+        // quais itens estão à venda agora — usado pra deixar a tag "Loja de Itens" confiável
+        // em todas as abas, não só dentro da aba Loja.
+        carregarLojaHoje().then(() => {
+          if (currentTab === 'all' || currentTab === 'my') mostrarItens();
+        });
       } catch (error) {
         console.error("Erro no fetch da API:", error);
       }
@@ -246,7 +378,7 @@
         const bgGrid = document.getElementById('bgOptionsGrid');
         
         if (todosItens.length === 0) {
-            bgGrid.innerHTML = '<p style="color:#ffcc00; font-size: 1.1rem; text-align: center; width: 100%; margin-top: 50px;">Baixando dados do Fortnite... Feche, aguarde alguns segundos e abra novamente!</p>';
+            bgGrid.innerHTML = '<p style="color:#ffcc00; font-size: 1.1rem; text-align: center; width: 100%; margin-top: 50px;">⏳ Baixando dados do Fortnite... Feche, aguarde alguns segundos e abra novamente!</p>';
             return;
         }
 
@@ -290,16 +422,50 @@
         if (elementoImg) elementoImg.classList.add('active');
     }
 
+    function extrairRenderImagesReais(newDisplayAsset) {
+      if (!newDisplayAsset) return [];
+      const brutos = newDisplayAsset.renderImages || newDisplayAsset.render_images || [];
+      return brutos
+        .map((r, idx) => ({
+          nome: r.productTag || r.product_tag || `Estilo ${idx + 1}`,
+          imagem: typeof r.image === 'string' ? r.image : (r.image && (r.image.url || r.image.src))
+        }))
+        .filter(r => !!r.imagem);
+    }
+
     function fecharModal(event) {
       if (event) event.preventDefault();
       document.getElementById('modalOverlay').style.display = 'none';
     }
 
-    function abrirModal(item) {
+    function abrirModal(itemOriginal) {
       document.getElementById('modalOverlay').style.display = 'flex';
+
+      // Se esse item está na loja hoje (mesmo vindo de "Todos os Itens" ou "Meu Vestiário"),
+      // junta os dados reais da loja (preço, render real etc) antes de montar o modal.
+      // Se não está mais na loja, mas JÁ esteve em algum momento desde que você começou a usar
+      // o app, usa o último preço/data vistos no histórico salvo no navegador.
+      const dadosLoja = dadosLojaPorItem[itemOriginal.id];
+      const dadosHistorico = !dadosLoja ? historicoLoja[itemOriginal.id] : null;
+
+      let item = itemOriginal;
+      if (dadosLoja) {
+        item = Object.assign({}, itemOriginal, dadosLoja, { _historico: false });
+      } else if (dadosHistorico) {
+        item = Object.assign({}, itemOriginal, {
+          _precoFinal: dadosHistorico.precoFinal,
+          _precoRegular: dadosHistorico.precoRegular,
+          _secao: dadosHistorico.secao,
+          _historico: true,
+          _dataHistorico: dadosHistorico.data
+        });
+      }
       
       let mainImg = 'https://via.placeholder.com/150';
-      if (item.images) {
+      const rendersReaisDaLoja = extrairRenderImagesReais(item._newDisplayAsset);
+      if (rendersReaisDaLoja.length > 0) {
+        mainImg = rendersReaisDaLoja[0].imagem;
+      } else if (item.images) {
           mainImg = item.images.renderImage || item.images.featured || item.images.icon || mainImg;
       }
       const modalMainImg = document.getElementById('modalMainImg');
@@ -353,7 +519,8 @@
       
       let fonte = "Eventos / Grátis / Outros";
       
-      if (ehLojaItem) { fonte = "Loja de Itens"; }
+      if (idsNaLojaHoje.has(item.id) || historicoLoja[item.id]) { fonte = "Loja de Itens"; }
+      else if (ehLojaItem) { fonte = "Loja de Itens"; }
       else if (ehClubeItem) { fonte = "Clube Fortnite"; }
       else if (ehPasseItem) { fonte = "Passe de Batalha"; }
       else if (ehGratisItem) { fonte = "Grátis / Eventos"; }
@@ -364,48 +531,53 @@
       else if (naLoja) { fonte = "Loja de Itens"; }
       else if (noClube) { fonte = "Clube Fortnite"; }
       else if (ehPasseAPI) { fonte = "Passe de Batalha"; }
+      else if (item._precoFinal !== undefined) { fonte = "Loja de Itens"; }
       
       document.getElementById('modalSource').textContent = fonte;
 
       const variantsContainer = document.getElementById('modalVariants');
       variantsContainer.innerHTML = ''; 
-      
-      if (item.variants && item.variants.length > 0) {
+
+      function criarBotaoRender(url, titulo, container, imgPrincipal, ativo) {
+          const btn = document.createElement('img');
+          btn.className = 'variant-icon hd-icon' + (ativo ? ' active' : '');
+          btn.src = url;
+          btn.title = titulo;
+          btn.onerror = () => { btn.style.display = 'none'; };
+          btn.onclick = () => {
+              imgPrincipal.src = url;
+              document.querySelectorAll('.variant-icon').forEach(el => el.classList.remove('active'));
+              btn.classList.add('active');
+          };
+          container.appendChild(btn);
+      }
+
+      // Seção de renders HD: prioridade é o render REAL vindo do /v2/shop (quando o item está na loja).
+      // Sem isso, cai pro render "adivinhado" pelo ID (pode não existir) e por fim pra lista manual.
+      if (rendersReaisDaLoja.length > 0 || (item.newDisplayAsset && item.newDisplayAsset.id) || manualRenders[item.id]) {
         const hdChannelDiv = document.createElement('div');
         hdChannelDiv.className = 'variant-channel';
         hdChannelDiv.innerHTML = `<div class="variant-channel-name">Visualização Render</div>`;
         const hdOptionsDiv = document.createElement('div');
         hdOptionsDiv.className = 'variant-options';
 
-        const temManual = manualRenders[item.id];
-        const temAutomatico = item.newDisplayAsset && item.newDisplayAsset.id;
-
-        if (temManual || temAutomatico) {
-            if (temManual) {
-                manualRenders[item.id].forEach((url, index) => { criarBotaoRender(url, index, hdOptionsDiv, modalMainImg); });
-            } else if (temAutomatico) {
-                for (let i = 0; i < 6; i++) {
-                    const url = `https://fortnite-api.com/images/cosmetics/br/newdisplayassets/${item.newDisplayAsset.id.toLowerCase()}/renderimage_${i}.png`;
-                    criarBotaoRender(url, i, hdOptionsDiv, modalMainImg);
-                }
+        if (rendersReaisDaLoja.length > 0) {
+            rendersReaisDaLoja.forEach((r, index) => {
+              criarBotaoRender(r.imagem, r.nome, hdOptionsDiv, modalMainImg, index === 0);
+            });
+        } else if (manualRenders[item.id]) {
+            manualRenders[item.id].forEach((url, index) => { criarBotaoRender(url, `Render HD ${index}`, hdOptionsDiv, modalMainImg, index === 0); });
+        } else if (item.newDisplayAsset && item.newDisplayAsset.id) {
+            for (let i = 0; i < 6; i++) {
+                const url = `https://fortnite-api.com/images/cosmetics/br/newdisplayassets/${item.newDisplayAsset.id.toLowerCase()}/renderimage_${i}.png`;
+                criarBotaoRender(url, `Render HD ${i}`, hdOptionsDiv, modalMainImg, i === 0);
             }
-            hdChannelDiv.appendChild(hdOptionsDiv);
-            variantsContainer.appendChild(hdChannelDiv);
         }
+        hdChannelDiv.appendChild(hdOptionsDiv);
+        variantsContainer.appendChild(hdChannelDiv);
+      }
 
-        function criarBotaoRender(url, index, container, imgPrincipal) {
-            const btn = document.createElement('img');
-            btn.className = 'variant-icon hd-icon';
-            btn.src = url;
-            btn.title = `Render HD ${index}`;
-            btn.onerror = () => { btn.style.display = 'none'; };
-            btn.onclick = () => {
-                imgPrincipal.src = url;
-                document.querySelectorAll('.variant-icon').forEach(el => el.classList.remove('active'));
-                btn.classList.add('active');
-            };
-            container.appendChild(btn);
-        }
+      if (item.variants && item.variants.length > 0) {
 
         item.variants.forEach(v => {
           const channelDiv = document.createElement('div');
@@ -432,13 +604,43 @@
           variantsContainer.appendChild(channelDiv);
         });
       }
+
+      // Preço: se está na loja AGORA, mostra o preço ao vivo; se só temos histórico salvo,
+      // mostra o último preço visto com a data, deixando claro que não é a oferta atual.
+      const linhaPreco = document.getElementById('modalPrecoLinha');
+      const precoLabel = document.getElementById('modalPrecoLabel');
+      const precoTexto = document.getElementById('modalPreco');
+      if (item._precoFinal !== undefined) {
+        precoTexto.textContent = (item._precoRegular && item._precoRegular !== item._precoFinal)
+          ? `${item._precoFinal} V-Bucks (de ${item._precoRegular})`
+          : `${item._precoFinal} V-Bucks`;
+        if (item._historico) {
+          const dataFormatada = item._dataHistorico ? new Date(item._dataHistorico + 'T00:00:00').toLocaleDateString('pt-BR') : '';
+          precoLabel.textContent = `Último preço visto na loja${dataFormatada ? ' (' + dataFormatada + ')' : ''}:`;
+        } else {
+          precoLabel.textContent = 'Preço na loja:';
+        }
+        linhaPreco.style.display = 'flex';
+      } else {
+        linhaPreco.style.display = 'none';
+      }
+    }
+
+    function itensDaAbaAtual() {
+      if (currentTab === 'my') return meuVestiario;
+      if (currentTab === 'shop') {
+        return secaoLojaAtiva ? itensLojaHoje.filter(i => i._secao === secaoLojaAtiva) : itensLojaHoje;
+      }
+      return todosItens;
     }
 
     function mostrarMais() {
       const grid = document.getElementById('grid');
-      let itensParaMostrar = currentTab === 'my' ? meuVestiario : todosItens;
+      let itensParaMostrar = itensDaAbaAtual();
 
-      itensParaMostrar.sort((a, b) => new Date(b.added || 0) - new Date(a.added || 0));
+      if (currentTab !== 'shop') {
+        itensParaMostrar.sort((a, b) => new Date(b.added || 0) - new Date(a.added || 0));
+      }
 
       const termo = document.getElementById('search').value.toLowerCase().trim();
       const raridade = document.getElementById('rarityFilter').value;
@@ -459,15 +661,21 @@
         return matchSearch && matchRarity && matchType && matchSet;
       });
 
+      if (currentTab === 'shop' && filtrados.length === 0 && itensParaMostrar.length === 0 && !lojaHojeCarregando) {
+        grid.innerHTML = '<p style="color:#ccc; text-align:center; width:100%; margin-top:40px;">Carregando a loja de hoje...</p>';
+        document.getElementById('sentinela').style.display = 'none';
+        return;
+      }
+
       const fim = Math.min(itensMostrados + itensPorVez, filtrados.length);
 
       for (let i = itensMostrados; i < fim; i++) {
         const item = filtrados[i];
         
         const noVestiario = meuVestiario.some(vItem => vItem.id === item.id);
-        const btnText = currentTab === 'all' ? (noVestiario ? '✓' : '+') : '×';
-        const btnBg = (currentTab === 'all' && noVestiario) ? '#4CAF50' : '#ffcc00';
-        const btnColor = (currentTab === 'all' && noVestiario) ? 'white' : 'black';
+        const btnText = currentTab === 'all' ? (noVestiario ? '✓' : '+') : (currentTab === 'shop' ? (noVestiario ? '✓' : '+') : '×');
+        const btnBg = (currentTab !== 'my' && noVestiario) ? '#4CAF50' : '#ffcc00';
+        const btnColor = (currentTab !== 'my' && noVestiario) ? 'white' : 'black';
 
         let introText = "Data Desconhecida";
         if (item.introduction && item.introduction.text) {
@@ -496,7 +704,8 @@
         let fonte = "Eventos / Grátis / Outros";
         let corFonte = "#50c878"; 
 
-        if (ehLojaItem) { fonte = "Loja de Itens"; corFonte = "#ff7b00"; }
+        if (currentTab === 'shop' || idsNaLojaHoje.has(item.id) || historicoLoja[item.id]) { fonte = "Loja de Itens"; corFonte = "#ff7b00"; }
+        else if (ehLojaItem) { fonte = "Loja de Itens"; corFonte = "#ff7b00"; }
         else if (ehClubeItem) { fonte = "Clube Fortnite"; corFonte = "#ff4d4d"; }
         else if (ehPasseItem) { fonte = "Passe de Batalha"; corFonte = "#b864ff"; }
         else if (ehGratisItem) { fonte = "Grátis / Eventos"; corFonte = "#50c878"; }
@@ -513,6 +722,10 @@
         const itemTypeVal = item.type ? item.type.displayValue : 'Desconhecido';
         const itemNameStr = item.name || 'Desconhecido';
 
+        const precoHtml = (currentTab === 'shop' && item._precoFinal !== undefined)
+          ? `<div class="info info-preco">💰 ${item._precoFinal} V-Bucks${item._bundle ? ' (pacote)' : ''}</div>`
+          : '';
+
         const card = document.createElement('div');
         card.className = 'card';
         card.onclick = () => abrirModal(item); 
@@ -522,6 +735,7 @@
           <p>${itemNameStr}</p>
           <div class="info">${itemRarityVal} | ${itemTypeVal}</div>
           ${(item.set && item.set.value) ? `<div class="info info-conjunto">Conjunto: ${item.set.value}</div>` : ''}
+          ${precoHtml}
           <div class="info info-tempo">${introText}</div>
           <div class="info" style="color: ${corFonte}; font-weight: bold;">${fonte}</div>
           <button class="add-btn" style="background-color: ${btnBg}; color: ${btnColor};" onclick="event.stopPropagation(); handleButtonClick('${item.id}', this)">${btnText}</button>
@@ -531,7 +745,6 @@
       
       itensMostrados = fim;
       
-      // Controla a sentinela do Scroll Infinito
       const sentinela = document.getElementById('sentinela');
       if (itensMostrados >= filtrados.length) {
           sentinela.style.display = 'none';
@@ -542,36 +755,48 @@
       document.getElementById('count').textContent = meuVestiario.length;
     }
 
-    // =========================================================================
-    // IMPLEMENTAÇÃO DO SCROLL INFINITO
-    // =========================================================================
     const observadorScroll = new IntersectionObserver((entradas) => {
-        // Se a nossa div "invisível" lá no fundo aparecer na tela do usuário, carrega mais!
         if (entradas[0].isIntersecting) {
             mostrarMais();
         }
-    }, { rootMargin: '200px' }); // O "rootMargin" faz ele carregar um pouquinho ANTES de você chegar no fundo, para ficar sem atrasos!
+    }, { rootMargin: '200px' }); 
 
-    // Manda o código ficar de olho na sentinela
     observadorScroll.observe(document.getElementById('sentinela'));
 
-
+    // =========================================================================
+    // CORREÇÃO: O BOTÃO AGORA ATUALIZA SOZINHO SEM RECARREGAR A TELA!
+    // =========================================================================
     function handleButtonClick(id, btnElement) {
-        if (currentTab === 'all') { toggleItem(id); } else { removerDoVestiario(id); }
-    }
-
-    function toggleItem(id) {
-      const item = todosItens.find(i => i.id === id);
-      const index = meuVestiario.findIndex(i => i.id === id);
-      if (index === -1) { meuVestiario.push(item); } else { meuVestiario.splice(index, 1); }
-      localStorage.setItem('meuVestiario', JSON.stringify(meuVestiario));
-      mostrarItens();
-    }
-
-    function removerDoVestiario(id) {
-      meuVestiario = meuVestiario.filter(i => i.id !== id);
-      localStorage.setItem('meuVestiario', JSON.stringify(meuVestiario));
-      mostrarItens();
+        if (currentTab === 'my') { 
+            // Se estiver na aba "Meu Vestiário", o card só some da tela sem piscar nada
+            meuVestiario = meuVestiario.filter(i => i.id !== id);
+            localStorage.setItem('meuVestiario', JSON.stringify(meuVestiario));
+            
+            const card = btnElement.closest('.card');
+            if(card) {
+                card.remove(); 
+            }
+            document.getElementById('count').textContent = meuVestiario.length;
+        } else { 
+            // Abas "Todos os Itens" e "Loja de Hoje": adiciona/remove do vestiário
+            const item = (currentTab === 'shop' ? itensLojaHoje : todosItens).find(i => i.id === id);
+            const index = meuVestiario.findIndex(i => i.id === id);
+            
+            if (index === -1) { 
+                meuVestiario.push(item); 
+                btnElement.textContent = '✓';
+                btnElement.style.backgroundColor = '#4CAF50';
+                btnElement.style.color = 'white';
+            } else { 
+                meuVestiario.splice(index, 1); 
+                btnElement.textContent = '+';
+                btnElement.style.backgroundColor = '#ffcc00';
+                btnElement.style.color = 'black';
+            }
+            
+            localStorage.setItem('meuVestiario', JSON.stringify(meuVestiario));
+            document.getElementById('count').textContent = meuVestiario.length;
+        }
     }
 
     function adicionarTodoConjunto() {
@@ -631,11 +856,21 @@
       reader.readAsText(file);
     }
 
-    document.querySelectorAll('.tab').forEach(tab => {
-      tab.addEventListener('click', () => {
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab[data-tab]').forEach(tab => {
+      tab.addEventListener('click', async () => {
+        document.querySelectorAll('.tab[data-tab]').forEach(t => t.classList.remove('active'));
         tab.classList.add('active');
         currentTab = tab.dataset.tab;
+
+        const containerSecoes = document.getElementById('lojaSecoes');
+        if (currentTab === 'shop') {
+          secaoLojaAtiva = null;
+          mostrarItens(); // mostra "Carregando..." imediatamente
+          await carregarLojaHoje();
+          containerSecoes.style.display = secoesLoja.length > 1 ? 'flex' : 'none';
+        } else {
+          containerSecoes.style.display = 'none';
+        }
         mostrarItens();
       });
     });
