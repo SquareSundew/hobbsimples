@@ -82,6 +82,10 @@
     .modal-info-box { background: rgba(0,0,0,0.3); padding: 18px; border-radius: 12px; font-size: 0.9rem; border-top: 2px solid #333; margin-top: auto; }
     .modal-info-box p { margin: 10px 0; display: flex; justify-content: space-between; align-items: center; color: #aaa; }
     .modal-info-box strong { color: white; text-align: right; }
+    .pacote-item-thumb { width: 70px; cursor: pointer; text-align: center; }
+    .pacote-item-thumb img { width: 70px; height: 70px; object-fit: contain; background: #222; border-radius: 8px; border: 2px solid #555; transition: 0.2s; }
+    .pacote-item-thumb:hover img { border-color: #ffcc00; transform: scale(1.05); }
+    .pacote-item-thumb span { display: block; font-size: 0.72rem; color: #ccc; margin-top: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
     /* MODAL DE CONFIGURAÇÕES */
     .config-content { width: 1000px; max-width: 95%; height: 85vh; background: #1e1e28; border-radius: 12px; position: relative; border: 1px solid #333; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 0 30px rgba(0,0,0,0.8); }
@@ -100,7 +104,7 @@
     <div class="tabs">
       <div class="tab active" data-tab="all">Todos os Itens</div>
       <div class="tab" data-tab="my">Meu Vestiário (<span id="count">0</span>)</div>
-      <div class="tab" data-tab="shop">Loja</div>
+      <div class="tab" data-tab="shop">Loja de Hoje</div>
     </div>
 
     <div class="controls">
@@ -132,6 +136,8 @@
       
       <button class="btn-config" onclick="abrirConfiguracoes()">Configurações</button>
       
+      <button class="btn-config" onclick="abrirRendersManuais()">Renders Manuais</button>
+      
       <button onclick="resetFiltros()">Limpar Filtro</button>
       <button onclick="exportarVestiario()">Exportar</button>
       <label style="cursor:pointer; padding:12px 18px; background:rgba(0,0,0,0.7); border:2px solid rgba(255,255,255,0.3); border-radius:50px; transition: 0.2s;">Importar<input type="file" id="importFile" accept=".json" style="display:none;" onchange="importarVestiario(event)">
@@ -156,6 +162,10 @@
         <div id="modalSet" class="modal-set"></div>
         <div id="modalVariants" class="modal-variants"></div>
         <div class="modal-desc-box"><div id="modalDesc" class="modal-desc-text"></div><div class="modal-desc-sub"></div></div>
+        <div id="modalPacoteWrap" style="display:none; margin-bottom:20px;">
+          <div class="variant-channel-name">Itens inclusos no pacote</div>
+          <div id="modalPacoteItens" style="display:flex; flex-wrap:wrap; gap:12px; justify-content:center;"></div>
+        </div>
         <div class="modal-info-box">
           <p><span>Fonte:</span> <strong id="modalSource"></strong></p>
           <p><span>No Jogo desde:</span> <strong id="modalSeason"></strong></p>
@@ -173,8 +183,35 @@
       <div class="config-header">
         <h2>Escolher Fundo de Tela</h2>
         <p style="color:#aaa; font-size:1rem; margin-top:8px;">Selecione uma Tela de Carregamento oficial do jogo para personalizar o seu Vestiário.</p>
+        <input type="text" id="bgSearchInput" placeholder="Pesquisar tela de carregamento..." oninput="filtrarFundos()"
+               style="margin-top:14px; width:100%; max-width:400px; padding:12px 18px; background:rgba(0,0,0,0.5); border:2px solid rgba(255,255,255,0.3); border-radius:50px; color:white; font-size:1rem;">
       </div>
       <div class="config-body" id="bgOptionsGrid"></div>
+    </div>
+  </div>
+
+  <!-- MODAL DE RENDERS MANUAIS -->
+  <div id="renderManualModalOverlay" class="modal-overlay" onclick="fecharRendersManuais(event)">
+    <div class="config-content" style="width:700px; height:auto; max-height:85vh;" onclick="event.stopPropagation()">
+      <button class="modal-close" onclick="fecharRendersManuais(event)">&times;</button>
+      <div class="config-header">
+        <h2>Renders Manuais</h2>
+        <p style="color:#aaa; font-size:1rem; margin-top:8px;">Cole o ID do item (ex: <code>CID_028_Athena_Commando_F</code>) e uma URL de imagem por linha. Isso tem prioridade sobre qualquer outro render — fica salvo só neste navegador.</p>
+      </div>
+      <div style="padding: 20px; overflow-y: auto;">
+        <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:20px;">
+          <input type="text" id="renderManualId" placeholder="ID do item (ex: CID_028_Athena_Commando_F)"
+                 style="padding:12px; border-radius:8px; border:2px solid #555; background:#111; color:white; font-size:0.95rem;">
+          <textarea id="renderManualUrls" placeholder="Uma URL de imagem por linha" rows="4"
+                    style="padding:12px; border-radius:8px; border:2px solid #555; background:#111; color:white; font-size:0.9rem; font-family:inherit; resize:vertical;"></textarea>
+          <label style="display:flex; align-items:center; gap:8px; color:#ccc; font-size:0.9rem; cursor:pointer;">
+            <input type="checkbox" id="renderManualSubstituir" style="width:16px; height:16px; cursor:pointer;">
+            Substituir tudo que já estava salvo pra esse ID (em vez de adicionar como estilo novo)
+          </label>
+          <button class="btn-add-conjunto" onclick="salvarRenderManual()">Salvar Render Manual</button>
+        </div>
+        <div id="listaRendersManuais" style="display:flex; flex-direction:column; gap:12px;"></div>
+      </div>
     </div>
   </div>
 
@@ -197,6 +234,132 @@
     const itensClube = [];
     const itensGratis = ["quadro de extração da slone", "sombrinha do elemental de ar"]; 
 
+    const manualRenders = {
+      "Character_TideCompost": [
+          "https://fortnite-api.com/images/cosmetics/br/newdisplayassets/979530a49e692da6/renderimage_0.png",
+          "https://fortnite-api.com/images/cosmetics/br/newdisplayassets/979530a49e692da6/renderimage_1.png",
+          "https://fortnite-api.com/images/cosmetics/br/newdisplayassets/979530a49e692da6/renderimage_2.png",
+          "https://fortnite-api.com/images/cosmetics/br/newdisplayassets/979530a49e692da6/renderimage_3.png",
+          "https://fortnite-api.com/images/cosmetics/br/newdisplayassets/979530a49e692da6/renderimage_4.png",
+      ],
+      "Character_BeaverStage": [
+          "https://fortnite-api.com/images/cosmetics/br/character_beaverstage/featured.png",
+          "https://fortnite-api.com/images/cosmetics/br/newdisplayassets/411b9519a5c3b036/renderimage_1.png"
+      ],
+    };
+
+    // === RENDERS MANUAIS (persistente, salvo no navegador via painel "Renders Manuais") ===
+    // id do item -> array de URLs de imagem. Tem prioridade sobre qualquer outro render.
+    const CHAVE_RENDERS_MANUAIS = 'rendersManuaisFortnite';
+
+    function carregarRendersManuaisSalvos() {
+      try {
+        return JSON.parse(localStorage.getItem(CHAVE_RENDERS_MANUAIS)) || {};
+      } catch (e) {
+        return {};
+      }
+    }
+
+    let rendersManuaisSalvos = carregarRendersManuaisSalvos();
+
+    function salvarRendersManuaisNoStorage() {
+      try {
+        localStorage.setItem(CHAVE_RENDERS_MANUAIS, JSON.stringify(rendersManuaisSalvos));
+      } catch (e) {
+        console.warn('Não foi possível salvar os renders manuais.', e);
+      }
+    }
+
+    // Junta o que está fixo no código (manualRenders) com o que foi salvo pelo painel —
+    // o que foi salvo pelo painel tem prioridade se o mesmo ID existir nos dois.
+    function obterRendersManuais(id) {
+      return rendersManuaisSalvos[id] || manualRenders[id] || null;
+    }
+
+    function abrirRendersManuais() {
+      document.getElementById('renderManualModalOverlay').style.display = 'flex';
+      document.getElementById('renderManualId').value = '';
+      document.getElementById('renderManualUrls').value = '';
+      renderizarListaRendersManuais();
+    }
+
+    function fecharRendersManuais(event) {
+      if (event) event.preventDefault();
+      document.getElementById('renderManualModalOverlay').style.display = 'none';
+    }
+
+    function salvarRenderManual() {
+      const id = document.getElementById('renderManualId').value.trim();
+      const urlsTexto = document.getElementById('renderManualUrls').value.trim();
+      const substituirTudo = document.getElementById('renderManualSubstituir').checked;
+
+      if (!id) { alert('Informe o ID do item.'); return; }
+      const novasUrls = urlsTexto.split('\n').map(u => u.trim()).filter(u => u.length > 0);
+      if (novasUrls.length === 0) { alert('Cole pelo menos uma URL de imagem.'); return; }
+
+      if (substituirTudo || !rendersManuaisSalvos[id]) {
+        rendersManuaisSalvos[id] = novasUrls;
+      } else {
+        // Soma como estilo novo, sem duplicar URL que já estava salva.
+        const existentes = rendersManuaisSalvos[id];
+        novasUrls.forEach(url => { if (!existentes.includes(url)) existentes.push(url); });
+      }
+      salvarRendersManuaisNoStorage();
+
+      document.getElementById('renderManualId').value = '';
+      document.getElementById('renderManualUrls').value = '';
+      document.getElementById('renderManualSubstituir').checked = false;
+      renderizarListaRendersManuais();
+      mostrarItens(); // atualiza os cards já visíveis, caso o item esteja na tela
+    }
+
+    function removerRenderManual(id) {
+      delete rendersManuaisSalvos[id];
+      salvarRendersManuaisNoStorage();
+      renderizarListaRendersManuais();
+      mostrarItens();
+    }
+
+    function renderizarListaRendersManuais() {
+      const lista = document.getElementById('listaRendersManuais');
+      const ids = Object.keys(rendersManuaisSalvos);
+
+      if (ids.length === 0) {
+        lista.innerHTML = '<p style="color:#777; text-align:center;">Nenhum render manual salvo ainda.</p>';
+        return;
+      }
+
+      lista.innerHTML = ids.map(id => `
+        <div style="background:rgba(0,0,0,0.3); border-radius:10px; padding:14px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <div>
+              <div style="font-weight:bold; word-break:break-all;">${id}</div>
+              <div style="color:#aaa; font-size:0.85rem;">${rendersManuaisSalvos[id].length} estilo(s)</div>
+            </div>
+            <button onclick="removerRenderManual('${id.replace(/'/g, "\\'")}')" style="background:#ff4d4d; border:none; color:white; border-radius:8px; padding:8px 14px; cursor:pointer;">Remover tudo</button>
+          </div>
+          <div style="display:flex; flex-wrap:wrap; gap:8px;">
+            ${rendersManuaisSalvos[id].map((url, idx) => `
+              <div style="position:relative;">
+                <img src="${url}" style="width:60px; height:60px; object-fit:contain; background:#111; border-radius:8px; border:2px solid #555;" onerror="this.style.opacity='0.2'">
+                <button onclick="removerUrlRenderManual('${id.replace(/'/g, "\\'")}', ${idx})" title="Remover só este estilo"
+                        style="position:absolute; top:-6px; right:-6px; width:20px; height:20px; border-radius:50%; background:#ff4d4d; border:none; color:white; font-size:12px; cursor:pointer; line-height:1;">×</button>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function removerUrlRenderManual(id, index) {
+      if (!rendersManuaisSalvos[id]) return;
+      rendersManuaisSalvos[id].splice(index, 1);
+      if (rendersManuaisSalvos[id].length === 0) delete rendersManuaisSalvos[id];
+      salvarRendersManuaisNoStorage();
+      renderizarListaRendersManuais();
+      mostrarItens();
+    }
+
     let todosItens = [];
     let meuVestiario = JSON.parse(localStorage.getItem('meuVestiario')) || [];
     let itensMostrados = 0;
@@ -204,7 +367,8 @@
     let currentTab = 'all';
 
     // === LOJA DE HOJE ===
-    let itensLojaHoje = [];      // itens à venda hoje, cada um com _precoFinal/_precoRegular/_bundle/_secao anexados
+    let itensLojaHoje = [];      // itens à venda hoje (achatados, um por item — usado pra tags/preço em qualquer aba)
+    let ofertasLoja = [];        // ofertas da loja agrupadas (um card por pacote/oferta) — usado na aba Loja
     let idsNaLojaHoje = new Set(); // ids que estão na loja HOJE, com certeza (cruzado com o /v2/shop real)
     let dadosLojaPorItem = {};   // id -> { _precoFinal, _precoRegular, _bundle, _newDisplayAsset, _secao }, pra usar em QUALQUER aba
     let secoesLoja = [];         // [{ nome, index }] únicos, na ordem em que a loja os organiza
@@ -237,13 +401,17 @@
 
     function registrarNoHistoricoLoja(itens) {
       const hoje = new Date().toISOString().slice(0, 10);
-      itens.forEach(item => {
+      // Mesma prioridade do dadosLojaPorItem: se o item é vendido sozinho E também dentro de
+      // um pacote, o histórico guarda o preço da venda individual.
+      const ordenados = [...itens.filter(i => i._bundle), ...itens.filter(i => !i._bundle)];
+      ordenados.forEach(item => {
         historicoLoja[item.id] = {
           precoFinal: item._precoFinal,
           precoRegular: item._precoRegular,
           secao: item._secao,
           data: hoje,
-          nome: item.name
+          nome: item.name,
+          bundle: item._bundle
         };
       });
       salvarHistoricoLoja();
@@ -258,6 +426,7 @@
         const json = await res.json();
         const entradas = (json.data && json.data.entries) || [];
         const itens = [];
+        const ofertas = [];
         const secoesMap = new Map();
 
         entradas.forEach(entrada => {
@@ -289,12 +458,51 @@
               _secao: nomeSecao
             }));
           });
+
+          // Uma "oferta" = um card na aba Loja. Quando a entrada tem mais de 1 item, é um pacote:
+          // mostramos UM card só (com a arte do pacote), não um card repetido pra cada peça.
+          const rendersOferta = extrairRenderImagesReais(entrada.newDisplayAsset);
+          const imagemOferta = rendersOferta.length > 0
+            ? rendersOferta[0].imagem
+            : ((listaItens[0].images && (listaItens[0].images.featured || listaItens[0].images.icon || listaItens[0].images.smallIcon)) || 'https://via.placeholder.com/150');
+
+          const nomeOferta = listaItens.length > 1
+            ? ((entrada.bundle && entrada.bundle.name) ? entrada.bundle.name : listaItens.map(i => i.name).join(' + '))
+            : listaItens[0].name;
+
+          ofertas.push({
+            idOferta: entrada.offerId || entrada.offer_id || listaItens.map(i => i.id).join('_'),
+            nome: nomeOferta,
+            imagem: imagemOferta,
+            precoFinal: entrada.finalPrice,
+            precoRegular: entrada.regularPrice,
+            secao: nomeSecao,
+            isBundle: listaItens.length > 1,
+            itens: listaItens,
+            newDisplayAsset: entrada.newDisplayAsset || null
+          });
         });
+
+        ofertasLoja = ofertas;
 
         itensLojaHoje = itens;
         idsNaLojaHoje = new Set(itens.map(i => i.id));
+
+        // Quando o MESMO item aparece em mais de uma oferta (ex: vendido sozinho E também
+        // dentro de um pacote), a venda individual tem prioridade — é o preço/render que faz
+        // sentido mostrar quando alguém abre o modal daquele item especificamente. Os dados do
+        // pacote só entram como fallback pra item que NUNCA é vendido separado.
         dadosLojaPorItem = {};
-        itens.forEach(i => {
+        itens.filter(i => i._bundle).forEach(i => {
+          dadosLojaPorItem[i.id] = {
+            _precoFinal: i._precoFinal,
+            _precoRegular: i._precoRegular,
+            _bundle: i._bundle,
+            _newDisplayAsset: i._newDisplayAsset,
+            _secao: i._secao
+          };
+        });
+        itens.filter(i => !i._bundle).forEach(i => {
           dadosLojaPorItem[i.id] = {
             _precoFinal: i._precoFinal,
             _precoRegular: i._precoRegular,
@@ -373,39 +581,61 @@
       }
     }
 
+    let telasDeCarregamento = null; // cache: calculado só uma vez, depois só refiltra na busca
+
     function abrirConfiguracoes() {
         document.getElementById('configModalOverlay').style.display = 'flex';
         const bgGrid = document.getElementById('bgOptionsGrid');
-        
+        document.getElementById('bgSearchInput').value = '';
+
         if (todosItens.length === 0) {
             bgGrid.innerHTML = '<p style="color:#ffcc00; font-size: 1.1rem; text-align: center; width: 100%; margin-top: 50px;">⏳ Baixando dados do Fortnite... Feche, aguarde alguns segundos e abra novamente!</p>';
             return;
         }
 
-        if (bgGrid.children.length > 5) return; 
+        if (!telasDeCarregamento) {
+            telasDeCarregamento = todosItens.filter(i => {
+                if (!i.type) return false;
+                const tipoValue = i.type.value ? i.type.value.toLowerCase() : '';
+                const backendValue = i.type.backendValue ? i.type.backendValue : '';
+                return tipoValue === 'loadingscreen' || backendValue === 'AthenaLoadingScreen';
+            }).map(tela => {
+                let urlHD = '';
+                if (tela.images) {
+                    urlHD = (tela.images.other && tela.images.other.background) ? tela.images.other.background : (tela.images.featured || tela.images.icon);
+                }
+                return { nome: tela.name || 'Tela de Carregamento', urlHD };
+            }).filter(t => !!t.urlHD);
+        }
 
-        const telas = todosItens.filter(i => {
-            if (!i.type) return false;
-            const tipoValue = i.type.value ? i.type.value.toLowerCase() : '';
-            const backendValue = i.type.backendValue ? i.type.backendValue : '';
-            return tipoValue === 'loadingscreen' || backendValue === 'AthenaLoadingScreen';
+        renderizarOpcoesFundo('');
+    }
+
+    function filtrarFundos() {
+        const termo = document.getElementById('bgSearchInput').value.toLowerCase().trim();
+        renderizarOpcoesFundo(termo);
+    }
+
+    function renderizarOpcoesFundo(termo) {
+        const bgGrid = document.getElementById('bgOptionsGrid');
+        if (!telasDeCarregamento) return;
+
+        let html = '';
+        // O fundo padrão só aparece quando não há pesquisa ativa (não é uma "tela de carregamento" de verdade)
+        if (!termo) {
+            html += `<img src="${fundoPadrao}" class="bg-option ${meuFundoAtual === fundoPadrao ? 'active' : ''}" onclick="mudarFundoLocker('${fundoPadrao}', this)" title="Fundo Padrão">`;
+        }
+
+        const filtradas = termo
+            ? telasDeCarregamento.filter(t => t.nome.toLowerCase().includes(termo))
+            : telasDeCarregamento;
+
+        filtradas.forEach(tela => {
+            const ativo = (meuFundoAtual === tela.urlHD) ? 'active' : '';
+            html += `<img loading="lazy" src="${tela.urlHD}" class="bg-option ${ativo}" onclick="mudarFundoLocker('${tela.urlHD}', this)" title="${tela.nome}">`;
         });
 
-        let html = `<img src="${fundoPadrao}" class="bg-option ${meuFundoAtual === fundoPadrao ? 'active' : ''}" onclick="mudarFundoLocker('${fundoPadrao}', this)" title="Fundo Padrão">`;
-
-        telas.forEach(tela => {
-            let urlHD = '';
-            if (tela.images) {
-                urlHD = (tela.images.other && tela.images.other.background) ? tela.images.other.background : (tela.images.featured || tela.images.icon);
-            }
-
-            if (urlHD) {
-                const ativo = (meuFundoAtual === urlHD) ? 'active' : '';
-                html += `<img loading="lazy" src="${urlHD}" class="bg-option ${ativo}" onclick="mudarFundoLocker('${urlHD}', this)" title="${tela.name || 'Tela de Carregamento'}">`;
-            }
-        });
-
-        bgGrid.innerHTML = html;
+        bgGrid.innerHTML = html || '<p style="color:#777; text-align:center; width:100%; margin-top:40px;">Nenhuma tela de carregamento encontrada com esse nome.</p>';
     }
 
     function fecharConfiguracoes(event) {
@@ -433,6 +663,89 @@
         .filter(r => !!r.imagem);
     }
 
+    // Modal específico pra PACOTES (ofertas com mais de 1 item). Mostra a arte do pacote,
+    // preço, seletor de render (se a loja tiver), e a lista de itens inclusos — cada um
+    // clicável, abrindo o modal normal daquele item específico.
+    function abrirModalOferta(oferta) {
+      document.getElementById('modalOverlay').style.display = 'flex';
+
+      const rendersOferta = extrairRenderImagesReais(oferta.newDisplayAsset);
+      const modalMainImg = document.getElementById('modalMainImg');
+      modalMainImg.src = oferta.imagem;
+      modalMainImg.onerror = null;
+
+      document.getElementById('modalTitle').textContent = oferta.nome;
+
+      const rarityElement = document.getElementById('modalRarity');
+      rarityElement.textContent = 'PACOTE';
+      rarityElement.style.backgroundColor = '#4dc5ff';
+      rarityElement.style.color = 'black';
+
+      document.getElementById('modalType').textContent = `${oferta.itens.length} itens`;
+
+      const conjuntosUnicos = [...new Set(oferta.itens.filter(i => i.set && i.set.value).map(i => i.set.value))];
+      document.getElementById('modalSet').innerHTML = conjuntosUnicos.length > 0
+        ? `Conjunto${conjuntosUnicos.length > 1 ? 's' : ''}: ${conjuntosUnicos.join(', ').toUpperCase()}`
+        : '';
+
+      document.getElementById('modalDesc').textContent = `Pacote com ${oferta.itens.length} itens disponível na loja.`;
+
+      document.getElementById('modalSource').textContent = 'Loja de Itens';
+      document.getElementById('modalSeason').textContent = (oferta.itens[0].introduction && oferta.itens[0].introduction.text) ? oferta.itens[0].introduction.text : 'Desconhecido';
+      const dataStr = oferta.itens[0].added ? new Date(oferta.itens[0].added).toLocaleDateString('pt-BR', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Desconhecida';
+      document.getElementById('modalDate').textContent = dataStr;
+
+      // Seletor de render (usa os renders reais do pacote, quando a loja fornecer)
+      const variantsContainer = document.getElementById('modalVariants');
+      variantsContainer.innerHTML = '';
+      if (rendersOferta.length > 0) {
+        const hdChannelDiv = document.createElement('div');
+        hdChannelDiv.className = 'variant-channel';
+        hdChannelDiv.innerHTML = `<div class="variant-channel-name">Visualização Render</div>`;
+        const hdOptionsDiv = document.createElement('div');
+        hdOptionsDiv.className = 'variant-options';
+        rendersOferta.forEach((r, index) => {
+          const btn = document.createElement('img');
+          btn.className = 'variant-icon hd-icon' + (index === 0 ? ' active' : '');
+          btn.src = r.imagem;
+          btn.title = r.nome;
+          btn.onerror = () => { btn.style.display = 'none'; };
+          btn.onclick = () => {
+            modalMainImg.src = r.imagem;
+            document.querySelectorAll('.variant-icon').forEach(el => el.classList.remove('active'));
+            btn.classList.add('active');
+          };
+          hdOptionsDiv.appendChild(btn);
+        });
+        hdChannelDiv.appendChild(hdOptionsDiv);
+        variantsContainer.appendChild(hdChannelDiv);
+      }
+
+      // Preço do pacote
+      const linhaPreco = document.getElementById('modalPrecoLinha');
+      const precoLabel = document.getElementById('modalPrecoLabel');
+      const precoTexto = document.getElementById('modalPreco');
+      precoLabel.textContent = 'Preço do pacote:';
+      precoTexto.textContent = (oferta.precoRegular && oferta.precoRegular !== oferta.precoFinal)
+        ? `${oferta.precoFinal} V-Bucks (de ${oferta.precoRegular})`
+        : `${oferta.precoFinal} V-Bucks`;
+      linhaPreco.style.display = 'flex';
+
+      // Lista de itens inclusos no pacote — clicáveis, abrem o modal normal de cada um
+      const wrapPacote = document.getElementById('modalPacoteWrap');
+      const listaPacote = document.getElementById('modalPacoteItens');
+      listaPacote.innerHTML = '';
+      oferta.itens.forEach(itemDoPacote => {
+        const thumb = document.createElement('div');
+        thumb.className = 'pacote-item-thumb';
+        const imgUrl = (itemDoPacote.images && (itemDoPacote.images.icon || itemDoPacote.images.smallIcon)) || 'https://via.placeholder.com/150';
+        thumb.innerHTML = `<img src="${imgUrl}" alt="${itemDoPacote.name}"><span>${itemDoPacote.name}</span>`;
+        thumb.onclick = () => abrirModal(itemDoPacote);
+        listaPacote.appendChild(thumb);
+      });
+      wrapPacote.style.display = 'block';
+    }
+
     function fecharModal(event) {
       if (event) event.preventDefault();
       document.getElementById('modalOverlay').style.display = 'none';
@@ -440,12 +753,18 @@
 
     function abrirModal(itemOriginal) {
       document.getElementById('modalOverlay').style.display = 'flex';
+      document.getElementById('modalPacoteWrap').style.display = 'none';
 
       // Se esse item está na loja hoje (mesmo vindo de "Todos os Itens" ou "Meu Vestiário"),
       // junta os dados reais da loja (preço, render real etc) antes de montar o modal.
       // Se não está mais na loja, mas JÁ esteve em algum momento desde que você começou a usar
       // o app, usa o último preço/data vistos no histórico salvo no navegador.
       const dadosLoja = dadosLojaPorItem[itemOriginal.id];
+
+      // "Todos os Itens" e "Meu Vestiário" mostram cada peça separada — o modal delas sempre
+      // exibe a versão individual do item (com o preço/render que existir pra ele: de venda
+      // avulsa quando houver, ou o do pacote como reserva quando só existir dentro de pacote).
+      // O modal de pacote completo (com a lista de itens inclusos) só abre a partir da aba Loja.
       const dadosHistorico = !dadosLoja ? historicoLoja[itemOriginal.id] : null;
 
       let item = itemOriginal;
@@ -457,16 +776,25 @@
           _precoRegular: dadosHistorico.precoRegular,
           _secao: dadosHistorico.secao,
           _historico: true,
-          _dataHistorico: dadosHistorico.data
+          _dataHistorico: dadosHistorico.data,
+          _bundle: dadosHistorico.bundle
         });
       }
       
       let mainImg = 'https://via.placeholder.com/150';
       const rendersReaisDaLoja = extrairRenderImagesReais(item._newDisplayAsset);
-      if (rendersReaisDaLoja.length > 0) {
+      const rendersManuais = obterRendersManuais(item.id);
+      // Prioridade: render MANUAL (cadastrado pelo painel) sempre vence — é intencional e
+      // explícito. Depois, imagem própria do item (featured). O render da loja só é usado
+      // quando vem de venda INDIVIDUAL de verdade; se o item só existe em pacote, cai pro ícone.
+      if (rendersManuais && rendersManuais.length > 0) {
+        mainImg = rendersManuais[0];
+      } else if (item.images && item.images.featured) {
+        mainImg = item.images.featured;
+      } else if (rendersReaisDaLoja.length > 0 && !item._bundle) {
         mainImg = rendersReaisDaLoja[0].imagem;
       } else if (item.images) {
-          mainImg = item.images.renderImage || item.images.featured || item.images.icon || mainImg;
+        mainImg = item.images.renderImage || item.images.icon || mainImg;
       }
       const modalMainImg = document.getElementById('modalMainImg');
       modalMainImg.src = mainImg;
@@ -538,41 +866,30 @@
       const variantsContainer = document.getElementById('modalVariants');
       variantsContainer.innerHTML = ''; 
 
-      function criarBotaoRender(url, titulo, container, imgPrincipal, ativo) {
-          const btn = document.createElement('img');
-          btn.className = 'variant-icon hd-icon' + (ativo ? ' active' : '');
-          btn.src = url;
-          btn.title = titulo;
-          btn.onerror = () => { btn.style.display = 'none'; };
-          btn.onclick = () => {
-              imgPrincipal.src = url;
-              document.querySelectorAll('.variant-icon').forEach(el => el.classList.remove('active'));
-              btn.classList.add('active');
-          };
-          container.appendChild(btn);
-      }
+      // Carrossel de renders: manuais primeiro (se cadastrados), senão os da loja (só pra venda individual).
+      const opcoesCarrossel = (rendersManuais && rendersManuais.length > 0)
+        ? rendersManuais.map((url, i) => ({ imagem: url, nome: `Manual ${i + 1}` }))
+        : ((rendersReaisDaLoja.length > 0 && !item._bundle) ? rendersReaisDaLoja : []);
 
-      // Seção de renders HD: prioridade é o render REAL vindo do /v2/shop (quando o item está na loja).
-      // Sem isso, cai pro render "adivinhado" pelo ID (pode não existir) e por fim pra lista manual.
-      if (rendersReaisDaLoja.length > 0 || (item.newDisplayAsset && item.newDisplayAsset.id) || manualRenders[item.id]) {
+      if (opcoesCarrossel.length > 0) {
         const hdChannelDiv = document.createElement('div');
         hdChannelDiv.className = 'variant-channel';
         hdChannelDiv.innerHTML = `<div class="variant-channel-name">Visualização Render</div>`;
         const hdOptionsDiv = document.createElement('div');
         hdOptionsDiv.className = 'variant-options';
-
-        if (rendersReaisDaLoja.length > 0) {
-            rendersReaisDaLoja.forEach((r, index) => {
-              criarBotaoRender(r.imagem, r.nome, hdOptionsDiv, modalMainImg, index === 0);
-            });
-        } else if (manualRenders[item.id]) {
-            manualRenders[item.id].forEach((url, index) => { criarBotaoRender(url, `Render HD ${index}`, hdOptionsDiv, modalMainImg, index === 0); });
-        } else if (item.newDisplayAsset && item.newDisplayAsset.id) {
-            for (let i = 0; i < 6; i++) {
-                const url = `https://fortnite-api.com/images/cosmetics/br/newdisplayassets/${item.newDisplayAsset.id.toLowerCase()}/renderimage_${i}.png`;
-                criarBotaoRender(url, `Render HD ${i}`, hdOptionsDiv, modalMainImg, i === 0);
-            }
-        }
+        opcoesCarrossel.forEach((r, index) => {
+          const btn = document.createElement('img');
+          btn.className = 'variant-icon hd-icon' + (index === 0 ? ' active' : '');
+          btn.src = r.imagem;
+          btn.title = r.nome;
+          btn.onerror = () => { btn.style.display = 'none'; };
+          btn.onclick = () => {
+            modalMainImg.src = r.imagem;
+            document.querySelectorAll('.variant-icon').forEach(el => el.classList.remove('active'));
+            btn.classList.add('active');
+          };
+          hdOptionsDiv.appendChild(btn);
+        });
         hdChannelDiv.appendChild(hdOptionsDiv);
         variantsContainer.appendChild(hdChannelDiv);
       }
@@ -606,7 +923,8 @@
       }
 
       // Preço: se está na loja AGORA, mostra o preço ao vivo; se só temos histórico salvo,
-      // mostra o último preço visto com a data, deixando claro que não é a oferta atual.
+      // mostra o último preço visto com a data. Se o único preço conhecido vem de um pacote
+      // (o item não é vendido avulso), avisa que é o preço do pacote, não do item sozinho.
       const linhaPreco = document.getElementById('modalPrecoLinha');
       const precoLabel = document.getElementById('modalPrecoLabel');
       const precoTexto = document.getElementById('modalPreco');
@@ -616,7 +934,9 @@
           : `${item._precoFinal} V-Bucks`;
         if (item._historico) {
           const dataFormatada = item._dataHistorico ? new Date(item._dataHistorico + 'T00:00:00').toLocaleDateString('pt-BR') : '';
-          precoLabel.textContent = `Último preço visto na loja${dataFormatada ? ' (' + dataFormatada + ')' : ''}:`;
+          precoLabel.textContent = `Último preço visto na loja${dataFormatada ? ' (' + dataFormatada + ')' : ''}${item._bundle ? ', em pacote' : ''}:`;
+        } else if (item._bundle) {
+          precoLabel.textContent = 'Preço do pacote (não vendido avulso):';
         } else {
           precoLabel.textContent = 'Preço na loja:';
         }
@@ -629,7 +949,7 @@
     function itensDaAbaAtual() {
       if (currentTab === 'my') return meuVestiario;
       if (currentTab === 'shop') {
-        return secaoLojaAtiva ? itensLojaHoje.filter(i => i._secao === secaoLojaAtiva) : itensLojaHoje;
+        return secaoLojaAtiva ? ofertasLoja.filter(o => o.secao === secaoLojaAtiva) : ofertasLoja;
       }
       return todosItens;
     }
@@ -647,19 +967,41 @@
       const tipo = document.getElementById('typeFilter').value;
       const conjunto = document.getElementById('setFilter').value.toLowerCase().trim();
 
-      let filtrados = itensParaMostrar.filter(item => {
-        const itemNome = item.name ? item.name.toLowerCase() : '';
-        const itemConjunto = (item.set && item.set.value) ? item.set.value.toLowerCase() : '';
-        const itemRaridade = item.rarity ? item.rarity.displayValue : '';
-        const itemTipo = item.type ? item.type.value : '';
+      let filtrados;
+      if (currentTab === 'shop') {
+        // Filtra por OFERTA: basta que QUALQUER item incluso no pacote bata com o filtro.
+        filtrados = itensParaMostrar.filter(oferta => {
+          const nomeOferta = oferta.nome.toLowerCase();
+          const matchSearchOferta = !termo || nomeOferta.includes(termo);
+          const matchSearchItens = !termo || oferta.itens.some(i =>
+            (i.name && i.name.toLowerCase().includes(termo)) ||
+            (i.set && i.set.value && i.set.value.toLowerCase().includes(termo))
+          );
+          const matchRarity = !raridade || oferta.itens.some(i => i.rarity && i.rarity.displayValue === raridade);
+          const matchType = !tipo || oferta.itens.some(i => i.type && i.type.value === tipo);
+          const matchSet = !conjunto || oferta.itens.some(i => i.set && i.set.value && i.set.value.toLowerCase().includes(conjunto));
 
-        const matchSearch = !termo || itemNome.includes(termo) || itemConjunto.includes(termo);
-        const matchRarity = !raridade || itemRaridade === raridade;
-        const matchType = !tipo || itemTipo === tipo;
-        const matchSet = !conjunto || itemConjunto.includes(conjunto);
-        
-        return matchSearch && matchRarity && matchType && matchSet;
-      });
+          return (matchSearchOferta || matchSearchItens) && matchRarity && matchType && matchSet;
+        });
+      } else {
+        filtrados = itensParaMostrar.filter(item => {
+          const itemNome = item.name ? item.name.toLowerCase() : '';
+          const itemConjunto = (item.set && item.set.value) ? item.set.value.toLowerCase() : '';
+          const itemRaridade = item.rarity ? item.rarity.displayValue : '';
+          const itemTipo = item.type ? item.type.value : '';
+
+          const matchSearch = !termo || itemNome.includes(termo) || itemConjunto.includes(termo);
+          const matchRarity = !raridade || itemRaridade === raridade;
+          const matchType = !tipo || itemTipo === tipo;
+          const matchSet = !conjunto || itemConjunto.includes(conjunto);
+
+          return matchSearch && matchRarity && matchType && matchSet;
+        });
+      }
+
+      if (currentTab === 'all') {
+        filtrados = agruparComPacotes(filtrados);
+      }
 
       if (currentTab === 'shop' && filtrados.length === 0 && itensParaMostrar.length === 0 && !lojaHojeCarregando) {
         grid.innerHTML = '<p style="color:#ccc; text-align:center; width:100%; margin-top:40px;">Carregando a loja de hoje...</p>';
@@ -670,77 +1012,13 @@
       const fim = Math.min(itensMostrados + itensPorVez, filtrados.length);
 
       for (let i = itensMostrados; i < fim; i++) {
-        const item = filtrados[i];
-        
-        const noVestiario = meuVestiario.some(vItem => vItem.id === item.id);
-        const btnText = currentTab === 'all' ? (noVestiario ? '✓' : '+') : (currentTab === 'shop' ? (noVestiario ? '✓' : '+') : '×');
-        const btnBg = (currentTab !== 'my' && noVestiario) ? '#4CAF50' : '#ffcc00';
-        const btnColor = (currentTab !== 'my' && noVestiario) ? 'white' : 'black';
-
-        let introText = "Data Desconhecida";
-        if (item.introduction && item.introduction.text) {
-            introText = item.introduction.text;
+        const entrada = filtrados[i];
+        if (entrada.itens) {
+          // É uma OFERTA agrupada (pacote) — mesmo card usado na aba Loja.
+          grid.appendChild(criarCardOferta(entrada));
+        } else {
+          grid.appendChild(criarCardItem(entrada));
         }
-
-        const tagsDoJogo = item.gameplayTags ? item.gameplayTags.join(' ').toLowerCase() : '';
-        const desc = item.description ? item.description.toLowerCase() : '';
-        const nomeMinusculo = item.name ? item.name.toLowerCase() : '';
-        const setName = (item.set && item.set.value) ? item.set.value.toLowerCase() : '';
-        
-        const naLoja = item.shopHistory && item.shopHistory.length > 0;
-        const noClube = tagsDoJogo.includes('crew') || desc.includes('clube fortnite');
-        const ehPasseAPI = (item.battlepass !== undefined && item.battlepass !== null) || tagsDoJogo.includes('battlepass');
-        
-        const ehLojaItem = itensLoja.includes(nomeMinusculo);
-        const ehPasseItem = itensPasse.includes(nomeMinusculo);
-        const ehClubeItem = itensClube.includes(nomeMinusculo);
-        const ehGratisItem = itensGratis.includes(nomeMinusculo);
-
-        const ehLojaConjunto = conjuntosLoja.includes(setName);
-        const ehPasseConjunto = conjuntosPasse.includes(setName);
-        const ehClubeConjunto = conjuntosClube.includes(setName);
-        const ehGratisConjunto = conjuntosGratis.includes(setName);
-        
-        let fonte = "Eventos / Grátis / Outros";
-        let corFonte = "#50c878"; 
-
-        if (currentTab === 'shop' || idsNaLojaHoje.has(item.id) || historicoLoja[item.id]) { fonte = "Loja de Itens"; corFonte = "#ff7b00"; }
-        else if (ehLojaItem) { fonte = "Loja de Itens"; corFonte = "#ff7b00"; }
-        else if (ehClubeItem) { fonte = "Clube Fortnite"; corFonte = "#ff4d4d"; }
-        else if (ehPasseItem) { fonte = "Passe de Batalha"; corFonte = "#b864ff"; }
-        else if (ehGratisItem) { fonte = "Grátis / Eventos"; corFonte = "#50c878"; }
-        else if (ehLojaConjunto) { fonte = "Loja de Itens"; corFonte = "#ff7b00"; }
-        else if (ehClubeConjunto) { fonte = "Clube Fortnite"; corFonte = "#ff4d4d"; }
-        else if (ehPasseConjunto) { fonte = "Passe de Batalha"; corFonte = "#b864ff"; }
-        else if (ehGratisConjunto) { fonte = "Grátis / Eventos"; corFonte = "#50c878"; }
-        else if (naLoja) { fonte = "Loja de Itens"; corFonte = "#ff7b00"; }
-        else if (noClube) { fonte = "Clube Fortnite"; corFonte = "#ff4d4d"; }
-        else if (ehPasseAPI) { fonte = "Passe de Batalha"; corFonte = "#b864ff"; }
-
-        const itemImgUrl = (item.images && (item.images.icon || item.images.smallIcon)) ? (item.images.icon || item.images.smallIcon) : 'https://via.placeholder.com/150';
-        const itemRarityVal = item.rarity ? item.rarity.displayValue : 'Comum';
-        const itemTypeVal = item.type ? item.type.displayValue : 'Desconhecido';
-        const itemNameStr = item.name || 'Desconhecido';
-
-        const precoHtml = (currentTab === 'shop' && item._precoFinal !== undefined)
-          ? `<div class="info info-preco">💰 ${item._precoFinal} V-Bucks${item._bundle ? ' (pacote)' : ''}</div>`
-          : '';
-
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.onclick = () => abrirModal(item); 
-        
-        card.innerHTML = `
-          <img loading="lazy" src="${itemImgUrl}" alt="${itemNameStr}">
-          <p>${itemNameStr}</p>
-          <div class="info">${itemRarityVal} | ${itemTypeVal}</div>
-          ${(item.set && item.set.value) ? `<div class="info info-conjunto">Conjunto: ${item.set.value}</div>` : ''}
-          ${precoHtml}
-          <div class="info info-tempo">${introText}</div>
-          <div class="info" style="color: ${corFonte}; font-weight: bold;">${fonte}</div>
-          <button class="add-btn" style="background-color: ${btnBg}; color: ${btnColor};" onclick="event.stopPropagation(); handleButtonClick('${item.id}', this)">${btnText}</button>
-        `;
-        grid.appendChild(card);
       }
       
       itensMostrados = fim;
@@ -753,6 +1031,138 @@
       }
       
       document.getElementById('count').textContent = meuVestiario.length;
+    }
+
+    // Junta itens que pertencem a um PACOTE ativo na loja de hoje num card só (a oferta),
+    // igual já acontece na aba Loja. Itens sem pacote continuam como estão, separados.
+    function agruparComPacotes(lista) {
+      const resultado = [];
+      const idsJaCobertos = new Set();
+      const ofertasJaAdicionadas = new Set();
+
+      lista.forEach(item => {
+        if (idsJaCobertos.has(item.id)) return; // já apareceu dentro de um pacote antes na lista
+
+        const dadosLoja = dadosLojaPorItem[item.id];
+        if (dadosLoja && dadosLoja._bundle) {
+          const oferta = ofertasLoja.find(o => o.isBundle && o.itens.some(i => i.id === item.id));
+          if (oferta) {
+            oferta.itens.forEach(i => idsJaCobertos.add(i.id));
+            if (!ofertasJaAdicionadas.has(oferta.idOferta)) {
+              ofertasJaAdicionadas.add(oferta.idOferta);
+              resultado.push(oferta);
+            }
+            return;
+          }
+        }
+        resultado.push(item);
+      });
+
+      return resultado;
+    }
+
+    function criarCardItem(item) {
+      const noVestiario = meuVestiario.some(vItem => vItem.id === item.id);
+      const btnText = currentTab === 'my' ? '×' : (noVestiario ? '✓' : '+');
+      const btnBg = (currentTab !== 'my' && noVestiario) ? '#4CAF50' : '#ffcc00';
+      const btnColor = (currentTab !== 'my' && noVestiario) ? 'white' : 'black';
+
+      let introText = "Data Desconhecida";
+      if (item.introduction && item.introduction.text) {
+          introText = item.introduction.text;
+      }
+
+      const tagsDoJogo = item.gameplayTags ? item.gameplayTags.join(' ').toLowerCase() : '';
+      const desc = item.description ? item.description.toLowerCase() : '';
+      const nomeMinusculo = item.name ? item.name.toLowerCase() : '';
+      const setName = (item.set && item.set.value) ? item.set.value.toLowerCase() : '';
+      
+      const naLoja = item.shopHistory && item.shopHistory.length > 0;
+      const noClube = tagsDoJogo.includes('crew') || desc.includes('clube fortnite');
+      const ehPasseAPI = (item.battlepass !== undefined && item.battlepass !== null) || tagsDoJogo.includes('battlepass');
+      
+      const ehLojaItem = itensLoja.includes(nomeMinusculo);
+      const ehPasseItem = itensPasse.includes(nomeMinusculo);
+      const ehClubeItem = itensClube.includes(nomeMinusculo);
+      const ehGratisItem = itensGratis.includes(nomeMinusculo);
+
+      const ehLojaConjunto = conjuntosLoja.includes(setName);
+      const ehPasseConjunto = conjuntosPasse.includes(setName);
+      const ehClubeConjunto = conjuntosClube.includes(setName);
+      const ehGratisConjunto = conjuntosGratis.includes(setName);
+      
+      let fonte = "Eventos / Grátis / Outros";
+      let corFonte = "#50c878"; 
+
+      if (idsNaLojaHoje.has(item.id) || historicoLoja[item.id]) { fonte = "Loja de Itens"; corFonte = "#ff7b00"; }
+      else if (ehLojaItem) { fonte = "Loja de Itens"; corFonte = "#ff7b00"; }
+      else if (ehClubeItem) { fonte = "Clube Fortnite"; corFonte = "#ff4d4d"; }
+      else if (ehPasseItem) { fonte = "Passe de Batalha"; corFonte = "#b864ff"; }
+      else if (ehGratisItem) { fonte = "Grátis / Eventos"; corFonte = "#50c878"; }
+      else if (ehLojaConjunto) { fonte = "Loja de Itens"; corFonte = "#ff7b00"; }
+      else if (ehClubeConjunto) { fonte = "Clube Fortnite"; corFonte = "#ff4d4d"; }
+      else if (ehPasseConjunto) { fonte = "Passe de Batalha"; corFonte = "#b864ff"; }
+      else if (ehGratisConjunto) { fonte = "Grátis / Eventos"; corFonte = "#50c878"; }
+      else if (naLoja) { fonte = "Loja de Itens"; corFonte = "#ff7b00"; }
+      else if (noClube) { fonte = "Clube Fortnite"; corFonte = "#ff4d4d"; }
+      else if (ehPasseAPI) { fonte = "Passe de Batalha"; corFonte = "#b864ff"; }
+
+      const itemImgUrl = (item.images && (item.images.icon || item.images.smallIcon)) ? (item.images.icon || item.images.smallIcon) : 'https://via.placeholder.com/150';
+      const itemRarityVal = item.rarity ? item.rarity.displayValue : 'Comum';
+      const itemTypeVal = item.type ? item.type.displayValue : 'Desconhecido';
+      const itemNameStr = item.name || 'Desconhecido';
+
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.onclick = () => abrirModal(item); 
+      
+      card.innerHTML = `
+        <img loading="lazy" src="${itemImgUrl}" alt="${itemNameStr}">
+        <p>${itemNameStr}</p>
+        <div class="info">${itemRarityVal} | ${itemTypeVal}</div>
+        ${(item.set && item.set.value) ? `<div class="info info-conjunto">Conjunto: ${item.set.value}</div>` : ''}
+        <div class="info info-tempo">${introText}</div>
+        <div class="info" style="color: ${corFonte}; font-weight: bold;">${fonte}</div>
+        <button class="add-btn" style="background-color: ${btnBg}; color: ${btnColor};" onclick="event.stopPropagation(); handleButtonClick('${item.id}', this)">${btnText}</button>
+      `;
+      return card;
+    }
+
+    // Um card por OFERTA da loja: se for pacote, mostra a arte do pacote e todos os itens vão
+    // pro vestiário juntos ao clicar em "+". A raridade/tipo mostrados são do 1º item quando
+    // a oferta é só 1 item; quando é pacote, mostra "Pacote" com a contagem de itens.
+    function criarCardOferta(oferta) {
+      const todosNoVestiario = oferta.itens.every(i => meuVestiario.some(v => v.id === i.id));
+      const btnText = todosNoVestiario ? '✓' : '+';
+      const btnBg = todosNoVestiario ? '#4CAF50' : '#ffcc00';
+      const btnColor = todosNoVestiario ? 'white' : 'black';
+
+      const primeiro = oferta.itens[0];
+      const subtitulo = oferta.isBundle
+        ? `Pacote | ${oferta.itens.length} itens`
+        : `${primeiro.rarity ? primeiro.rarity.displayValue : 'Comum'} | ${primeiro.type ? primeiro.type.displayValue : 'Desconhecido'}`;
+
+      const conjuntosUnicos = [...new Set(oferta.itens.filter(i => i.set && i.set.value).map(i => i.set.value))];
+
+      let introText = "Data Desconhecida";
+      if (primeiro.introduction && primeiro.introduction.text) {
+        introText = primeiro.introduction.text;
+      }
+
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.onclick = () => oferta.isBundle ? abrirModalOferta(oferta) : abrirModal(oferta.itens[0]);
+
+      card.innerHTML = `
+        <img loading="lazy" src="${oferta.imagem}" alt="${oferta.nome}">
+        <p>${oferta.nome}</p>
+        <div class="info">${subtitulo}</div>
+        ${conjuntosUnicos.length > 0 ? `<div class="info info-conjunto">Conjunto: ${conjuntosUnicos.join(', ')}</div>` : ''}
+        <div class="info info-tempo">${introText}</div>
+        <div class="info" style="color: #ff7b00; font-weight: bold;">Loja de Itens</div>
+        <button class="add-btn" style="background-color: ${btnBg}; color: ${btnColor};" onclick="event.stopPropagation(); handleButtonClickOferta('${oferta.idOferta}', this)">${btnText}</button>
+      `;
+      return card;
     }
 
     const observadorScroll = new IntersectionObserver((entradas) => {
@@ -778,8 +1188,8 @@
             }
             document.getElementById('count').textContent = meuVestiario.length;
         } else { 
-            // Abas "Todos os Itens" e "Loja de Hoje": adiciona/remove do vestiário
-            const item = (currentTab === 'shop' ? itensLojaHoje : todosItens).find(i => i.id === id);
+            // Aba "Todos os Itens": adiciona/remove do vestiário
+            const item = todosItens.find(i => i.id === id);
             const index = meuVestiario.findIndex(i => i.id === id);
             
             if (index === -1) { 
@@ -797,6 +1207,34 @@
             localStorage.setItem('meuVestiario', JSON.stringify(meuVestiario));
             document.getElementById('count').textContent = meuVestiario.length;
         }
+    }
+
+    // Botão "+"/"✓" nos cards da aba Loja: como o card representa a OFERTA (pode ser um pacote
+    // com vários itens), adiciona ou remove todos os itens daquele pacote de uma vez — igual o
+    // "Adicionar Conjunto" já faz pra conjuntos.
+    function handleButtonClickOferta(idOferta, btnElement) {
+      const oferta = ofertasLoja.find(o => o.idOferta === idOferta);
+      if (!oferta) return;
+
+      const todosNoVestiario = oferta.itens.every(i => meuVestiario.some(v => v.id === i.id));
+
+      if (todosNoVestiario) {
+        const idsDoPacote = new Set(oferta.itens.map(i => i.id));
+        meuVestiario = meuVestiario.filter(v => !idsDoPacote.has(v.id));
+        btnElement.textContent = '+';
+        btnElement.style.backgroundColor = '#ffcc00';
+        btnElement.style.color = 'black';
+      } else {
+        oferta.itens.forEach(i => {
+          if (!meuVestiario.some(v => v.id === i.id)) meuVestiario.push(i);
+        });
+        btnElement.textContent = '✓';
+        btnElement.style.backgroundColor = '#4CAF50';
+        btnElement.style.color = 'white';
+      }
+
+      localStorage.setItem('meuVestiario', JSON.stringify(meuVestiario));
+      document.getElementById('count').textContent = meuVestiario.length;
     }
 
     function adicionarTodoConjunto() {
@@ -833,8 +1271,14 @@
     }
 
     function exportarVestiario() {
-      if (meuVestiario.length === 0) { alert("Seu vestiário está vazio!"); return; }
-      const dataStr = JSON.stringify(meuVestiario, null, 2);
+      if (meuVestiario.length === 0 && Object.keys(rendersManuaisSalvos).length === 0) {
+        alert("Seu vestiário está vazio e não há renders manuais salvos!"); return;
+      }
+      const dataStr = JSON.stringify({
+        vestiario: meuVestiario,
+        rendersManuais: rendersManuaisSalvos,
+        fundoTela: meuFundoAtual
+      }, null, 2);
       const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
       const link = document.createElement('a');
       link.href = dataUri; link.download = 'meu-vestiario-fortnite.json'; link.click();
@@ -847,9 +1291,29 @@
       reader.onload = function(e) {
         try {
           const imported = JSON.parse(e.target.result);
-          meuVestiario = imported;
+
+          // Compatível com o formato antigo (arquivo era só um array de itens do vestiário)
+          // e com o novo (objeto com vestiario + rendersManuais + fundoTela juntos).
+          const vestiarioImportado = Array.isArray(imported) ? imported : (imported.vestiario || []);
+          const rendersImportados = Array.isArray(imported) ? {} : (imported.rendersManuais || {});
+          const fundoImportado = Array.isArray(imported) ? null : (imported.fundoTela || null);
+
+          meuVestiario = vestiarioImportado;
           localStorage.setItem('meuVestiario', JSON.stringify(meuVestiario));
-          alert(`Importado ${imported.length} itens!`);
+
+          // Renders manuais são MESCLADOS com os que já existem (não apaga o que já estava salvo).
+          const qtdRendersAntes = Object.keys(rendersManuaisSalvos).length;
+          rendersManuaisSalvos = Object.assign({}, rendersManuaisSalvos, rendersImportados);
+          salvarRendersManuaisNoStorage();
+          const qtdRendersNovos = Object.keys(rendersManuaisSalvos).length - qtdRendersAntes;
+
+          if (fundoImportado) {
+            meuFundoAtual = fundoImportado;
+            localStorage.setItem('fundoVestiario', fundoImportado);
+            aplicarFundoCSS(fundoImportado);
+          }
+
+          alert(`Importado ${vestiarioImportado.length} item(ns) do vestiário${qtdRendersNovos > 0 ? `, ${qtdRendersNovos} render(s) manual(is) novo(s)` : ''}${fundoImportado ? ' e o fundo de tela' : ''}!`);
           mostrarItens();
         } catch (err) { alert("Arquivo inválido!"); }
       };
