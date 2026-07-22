@@ -36,6 +36,20 @@
     .btn-config:hover { background: #4dc4ff00; color: rgb(255, 255, 255); }
 
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; padding: 20px; }
+    .secao-loja { margin: 30px 0; }
+    .secao-loja-titulo {
+      font-size: 1.6rem;
+      font-weight: 900;
+      font-style: italic;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 14px 20px;
+      margin: 0 20px 12px;
+      background: linear-gradient(90deg, rgba(0,0,0,0.75), rgba(0,0,0,0.15));
+      border-left: 5px solid #ffcc00;
+      border-radius: 6px;
+      text-shadow: 0 0 10px rgba(0,0,0,0.6);
+    }
     .card { background: rgba(30, 30, 40, 0.863); border-radius: 12px; overflow: hidden; transition: all 0.3s; border: 2px solid #555; position: relative; display: flex; flex-direction: column; padding-bottom: 10px; cursor: pointer; }
     .card:hover { transform: scale(1.05); box-shadow: 0 0 20px #ffcc0000; border-color: #ffcc0000; z-index: 10; }
     .card img { width: 100%; height: 180px; object-fit: contain; background: #1111119d; }
@@ -105,18 +119,42 @@
       <div class="tab active" data-tab="all">Todos os Itens</div>
       <div class="tab" data-tab="my">Meu Vestiário (<span id="count">0</span>)</div>
       <div class="tab" data-tab="shop">Loja de Hoje</div>
+      <div class="tab" data-tab="perfil">Perfil</div>
     </div>
 
-    <div class="controls">
+    <!-- ABA MEU PERFIL: estatísticas do jogador via /v2/stats/br/v2 -->
+    <div id="perfilContainer" style="display:none; max-width:900px; margin:20px auto; padding:0 20px;">
+      <div style="background:rgba(0,0,0,0.5); border:2px solid rgba(255,255,255,0.15); border-radius:14px; padding:24px; margin-bottom:20px;">
+        <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
+          <input type="text" id="perfilApiKey" placeholder="Sua API Key (fortnite-api.com/profile)"
+                 style="flex:1; min-width:220px; padding:12px 16px; background:rgba(0,0,0,0.5); border:2px solid rgba(255,255,255,0.3); border-radius:50px; color:white;">
+          <input type="text" id="perfilNome" placeholder="Nome Epic Games (ex: Ninja)"
+                 style="flex:1; min-width:180px; padding:12px 16px; background:rgba(0,0,0,0.5); border:2px solid rgba(255,255,255,0.3); border-radius:50px; color:white;">
+          <button class="btn-add-conjunto" onclick="buscarPerfil()">Buscar Estatísticas</button>
+        </div>
+        <p style="color:#888; font-size:0.82rem; margin:6px 2px 0;">
+          Esse endpoint da API exige uma chave própria (grátis) — gere a sua fazendo login em
+          <a href="https://dash.fortnite-api.com/" target="_blank" style="color:#4dc5ff;">dash.fortnite-api.com</a> com o Discord.
+          A chave e o nome ficam salvos só neste navegador.
+        </p>
+      </div>
+      <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:20px;">
+        <button class="btn-config" onclick="abrirConfiguracoes()">Wallpaper</button>
+        <button class="btn-config" onclick="abrirRendersManuais()">Renders Manuais</button>
+      </div>
+      <div id="perfilResultado"></div>
+    </div>
+
+    <div class="controls" id="controlsPrincipais">
       <input type="text" id="search" class="search search-item" placeholder="Pesquisar Item ou Conjunto..." onkeyup="aplicarFiltros()">
       
       <select id="rarityFilter" onchange="aplicarFiltros()">
         <option value="">Todas as Raridades</option>
-        <option value="Common">Comum</option>
-        <option value="Uncommon">Incomum</option>
-        <option value="Rare">Raro</option>
-        <option value="Epic">Épico</option>
-        <option value="Legendary">Lendário</option>
+        <option value="Comum">Comum</option>
+        <option value="Incomum">Incomum</option>
+        <option value="Raro">Raro</option>
+        <option value="Épico">Épico</option>
+        <option value="Lendário">Lendário</option>
       </select>
       
       <select id="typeFilter" onchange="aplicarFiltros()">
@@ -134,17 +172,12 @@
       
       <button class="btn-add-conjunto" onclick="adicionarTodoConjunto()">Adicionar Conjunto</button>
       
-      <button class="btn-config" onclick="abrirConfiguracoes()">Configurações</button>
-      
-      <button class="btn-config" onclick="abrirRendersManuais()">Renders Manuais</button>
-      
       <button onclick="resetFiltros()">Limpar Filtro</button>
       <button onclick="exportarVestiario()">Exportar</button>
       <label style="cursor:pointer; padding:12px 18px; background:rgba(0,0,0,0.7); border:2px solid rgba(255,255,255,0.3); border-radius:50px; transition: 0.2s;">Importar<input type="file" id="importFile" accept=".json" style="display:none;" onchange="importarVestiario(event)">
       </label>
     </div>
 
-    <div class="tabs" id="lojaSecoes" style="display:none; flex-wrap: wrap;"></div>
 
     <div class="grid" id="grid"></div>
     
@@ -372,7 +405,6 @@
     let idsNaLojaHoje = new Set(); // ids que estão na loja HOJE, com certeza (cruzado com o /v2/shop real)
     let dadosLojaPorItem = {};   // id -> { _precoFinal, _precoRegular, _bundle, _newDisplayAsset, _secao }, pra usar em QUALQUER aba
     let secoesLoja = [];         // [{ nome, index }] únicos, na ordem em que a loja os organiza
-    let secaoLojaAtiva = null;   // null = "Todas"
     let lojaHojeCarregada = false;
 
     // === HISTÓRICO DE LOJA (persistente, salvo no navegador) ===
@@ -405,13 +437,18 @@
       // um pacote, o histórico guarda o preço da venda individual.
       const ordenados = [...itens.filter(i => i._bundle), ...itens.filter(i => !i._bundle)];
       ordenados.forEach(item => {
+        // Guarda o(s) render(s) reais também — sem isso, quando o item sai da loja, a gente
+        // perde esse render pra sempre (a API não tem endpoint de loja histórica).
+        const rendersDoItem = extrairRenderImagesReais(item._newDisplayAsset).map(r => r.imagem);
+
         historicoLoja[item.id] = {
           precoFinal: item._precoFinal,
           precoRegular: item._precoRegular,
           secao: item._secao,
           data: hoje,
           nome: item.name,
-          bundle: item._bundle
+          bundle: item._bundle,
+          renders: rendersDoItem.length > 0 ? rendersDoItem : (historicoLoja[item.id] ? historicoLoja[item.id].renders : undefined)
         };
       });
       salvarHistoricoLoja();
@@ -516,7 +553,6 @@
           .sort((a, b) => a[1] - b[1])
           .map(([nome]) => nome);
         lojaHojeCarregada = true;
-        montarSecoesLoja();
       } catch (error) {
         console.error("Erro ao carregar a loja de hoje:", error);
         const grid = document.getElementById('grid');
@@ -526,26 +562,6 @@
       } finally {
         lojaHojeCarregando = false;
       }
-    }
-
-    function montarSecoesLoja() {
-      const container = document.getElementById('lojaSecoes');
-      if (secoesLoja.length <= 1) { container.innerHTML = ''; container.style.display = 'none'; return; }
-
-      let html = `<div class="tab ${secaoLojaAtiva === null ? 'active' : ''}" data-secao="">Tudo</div>`;
-      secoesLoja.forEach(nome => {
-        html += `<div class="tab ${secaoLojaAtiva === nome ? 'active' : ''}" data-secao="${nome}">${nome}</div>`;
-      });
-      container.innerHTML = html;
-
-      container.querySelectorAll('.tab').forEach(pill => {
-        pill.addEventListener('click', () => {
-          secaoLojaAtiva = pill.dataset.secao || null;
-          container.querySelectorAll('.tab').forEach(p => p.classList.remove('active'));
-          pill.classList.add('active');
-          mostrarItens();
-        });
-      });
     }
 
     async function carregarTodos() {
@@ -582,6 +598,134 @@
     }
 
     let telasDeCarregamento = null; // cache: calculado só uma vez, depois só refiltra na busca
+
+    // === MEU PERFIL (estatísticas via /v2/stats/br/v2) ===
+    // Esse endpoint exige uma API Key própria (grátis, gerada em dash.fortnite-api.com).
+    // A chave e o nome ficam salvos só neste navegador, pra não precisar digitar toda vez.
+    (function preencherCredenciaisPerfilSalvas() {
+      const apiKeySalva = localStorage.getItem('perfilApiKey');
+      const nomeSalvo = localStorage.getItem('perfilNome');
+      if (apiKeySalva) document.getElementById('perfilApiKey').value = apiKeySalva;
+      if (nomeSalvo) document.getElementById('perfilNome').value = nomeSalvo;
+    })();
+
+    async function buscarPerfil() {
+      const apiKey = document.getElementById('perfilApiKey').value.trim();
+      const nome = document.getElementById('perfilNome').value.trim();
+      const resultado = document.getElementById('perfilResultado');
+
+      if (!apiKey) { alert('Cole sua API Key primeiro (veja o link acima de onde pegar).'); return; }
+      if (!nome) { alert('Digite o nome Epic Games do jogador.'); return; }
+
+      localStorage.setItem('perfilApiKey', apiKey);
+      localStorage.setItem('perfilNome', nome);
+
+      resultado.innerHTML = '<p style="color:#ccc; text-align:center; margin-top:30px;">Buscando estatísticas...</p>';
+
+      try {
+        const res = await fetch(`https://fortnite-api.com/v2/stats/br/v2?name=${encodeURIComponent(nome)}`, {
+          headers: { 'Authorization': apiKey }
+        });
+
+        if (res.status === 401 || res.status === 403) {
+          resultado.innerHTML = '<p style="color:#ff7b7b; text-align:center; margin-top:30px;">API Key inválida ou sem permissão. Confira se copiou certo em dash.fortnite-api.com.</p>';
+          return;
+        }
+        if (res.status === 404) {
+          resultado.innerHTML = '<p style="color:#ff7b7b; text-align:center; margin-top:30px;">Jogador não encontrado. Confira o nome Epic Games (é o que aparece no canto superior esquerdo dentro do jogo).</p>';
+          return;
+        }
+        if (!res.ok) {
+          resultado.innerHTML = `<p style="color:#ff7b7b; text-align:center; margin-top:30px;">Erro ao buscar (código ${res.status}). Tente novamente mais tarde.</p>`;
+          return;
+        }
+
+        const json = await res.json();
+        renderizarPerfil(json.data);
+      } catch (error) {
+        console.error('Erro ao buscar perfil:', error);
+        resultado.innerHTML = '<p style="color:#ff7b7b; text-align:center; margin-top:30px;">Não foi possível conectar à API. Tente novamente.</p>';
+      }
+    }
+
+    function formatarNumero(n) {
+      return (n || 0).toLocaleString('pt-BR');
+    }
+
+    function renderizarPerfil(data) {
+      const resultado = document.getElementById('perfilResultado');
+      if (!data || !data.stats) {
+        resultado.innerHTML = '<p style="color:#ff7b7b; text-align:center; margin-top:30px;">Esse jogador não tem estatísticas públicas disponíveis.</p>';
+        return;
+      }
+
+      const metodos = [
+        { chave: 'all', nome: 'Todos os Métodos' },
+        { chave: 'keyboardMouse', nome: 'Teclado e Mouse' },
+        { chave: 'gamepad', nome: 'Controle' },
+        { chave: 'touch', nome: 'Touch' }
+      ].filter(m => data.stats[m.chave]);
+
+      if (metodos.length === 0) {
+        resultado.innerHTML = '<p style="color:#ff7b7b; text-align:center; margin-top:30px;">Esse jogador não tem estatísticas públicas disponíveis.</p>';
+        return;
+      }
+
+      const modos = [
+        { chave: 'overall', nome: 'Geral' },
+        { chave: 'solo', nome: 'Solo' },
+        { chave: 'duo', nome: 'Dupla' },
+        { chave: 'trio', nome: 'Trio' },
+        { chave: 'squad', nome: 'Esquadrão' },
+        { chave: 'ltm', nome: 'Modo Limitado' }
+      ];
+
+      const cabecalho = `
+        <div style="display:flex; align-items:center; gap:16px; margin-bottom:20px;">
+          ${data.account && data.account.name ? `<h2 style="margin:0;">${data.account.name}</h2>` : ''}
+          ${data.battlePass && data.battlePass.level ? `<span style="background:#ffcc00; color:black; font-weight:bold; padding:6px 14px; border-radius:20px;">Nível ${data.battlePass.level}</span>` : ''}
+        </div>
+        <div class="tabs" id="perfilMetodos" style="justify-content:flex-start; margin:0 0 20px;">
+          ${metodos.map((m, i) => `<div class="tab ${i === 0 ? 'active' : ''}" data-metodo="${m.chave}">${m.nome}</div>`).join('')}
+        </div>
+        <div id="perfilStatsGrid"></div>
+      `;
+      resultado.innerHTML = cabecalho;
+
+      function montarGridStats(metodoChave) {
+        const statsDoMetodo = data.stats[metodoChave];
+        const grid = document.getElementById('perfilStatsGrid');
+        const cards = modos
+          .filter(m => statsDoMetodo[m.chave])
+          .map(m => {
+            const s = statsDoMetodo[m.chave];
+            return `
+              <div style="background:rgba(0,0,0,0.4); border:2px solid #333; border-radius:12px; padding:18px;">
+                <div style="color:#ffcc00; font-weight:bold; font-size:1.1rem; margin-bottom:12px;">${m.nome}</div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:0.9rem;">
+                  <div>🏆 Vitórias: <strong>${formatarNumero(s.wins)}</strong></div>
+                  <div>🎯 Eliminações: <strong>${formatarNumero(s.kills)}</strong></div>
+                  <div>🎮 Partidas: <strong>${formatarNumero(s.matches)}</strong></div>
+                  <div>📊 K/D: <strong>${s.kd != null ? s.kd.toFixed(2) : '—'}</strong></div>
+                  <div>📈 Taxa de vitória: <strong>${s.winRate != null ? s.winRate.toFixed(1) + '%' : '—'}</strong></div>
+                  <div>⏱️ Min. jogados: <strong>${formatarNumero(s.minutesPlayed)}</strong></div>
+                </div>
+              </div>
+            `;
+          }).join('');
+        grid.innerHTML = `<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:16px;">${cards || '<p style="color:#888;">Sem dados pra esse método.</p>'}</div>`;
+      }
+
+      montarGridStats(metodos[0].chave);
+
+      document.querySelectorAll('#perfilMetodos .tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          document.querySelectorAll('#perfilMetodos .tab').forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          montarGridStats(tab.dataset.metodo);
+        });
+      });
+    }
 
     function abrirConfiguracoes() {
         document.getElementById('configModalOverlay').style.display = 'flex';
@@ -777,12 +921,17 @@
           _secao: dadosHistorico.secao,
           _historico: true,
           _dataHistorico: dadosHistorico.data,
-          _bundle: dadosHistorico.bundle
+          _bundle: dadosHistorico.bundle,
+          _historicoRenders: dadosHistorico.renders
         });
       }
       
       let mainImg = 'https://via.placeholder.com/150';
-      const rendersReaisDaLoja = extrairRenderImagesReais(item._newDisplayAsset);
+      // Quando o item não está mais na loja hoje, usa os renders salvos no histórico (se existirem)
+      // no lugar dos renders vivos do newDisplayAsset (que só existe pra item que está na loja agora).
+      const rendersReaisDaLoja = (item._historicoRenders && item._historicoRenders.length > 0)
+        ? item._historicoRenders.map((url, i) => ({ imagem: url, nome: `Estilo ${i + 1}` }))
+        : extrairRenderImagesReais(item._newDisplayAsset);
       const rendersManuais = obterRendersManuais(item.id);
       // Prioridade: render MANUAL (cadastrado pelo painel) sempre vence — é intencional e
       // explícito. Depois, imagem própria do item (featured). O render da loja só é usado
@@ -948,9 +1097,7 @@
 
     function itensDaAbaAtual() {
       if (currentTab === 'my') return meuVestiario;
-      if (currentTab === 'shop') {
-        return secaoLojaAtiva ? ofertasLoja.filter(o => o.secao === secaoLojaAtiva) : ofertasLoja;
-      }
+      if (currentTab === 'shop') return ofertasLoja;
       return todosItens;
     }
 
@@ -1003,11 +1150,52 @@
         filtrados = agruparComPacotes(filtrados);
       }
 
-      if (currentTab === 'shop' && filtrados.length === 0 && itensParaMostrar.length === 0 && !lojaHojeCarregando) {
-        grid.innerHTML = '<p style="color:#ccc; text-align:center; width:100%; margin-top:40px;">Carregando a loja de hoje...</p>';
+      // === ABA LOJA: renderiza como faixas empilhadas por seção, igual ao jogo — sem paginação,
+      // sem pílulas clicáveis. Rola a página inteira e vê tudo, agrupado por título de seção. ===
+      if (currentTab === 'shop') {
         document.getElementById('sentinela').style.display = 'none';
+
+        if (filtrados.length === 0 && itensParaMostrar.length === 0 && !lojaHojeCarregando) {
+          grid.innerHTML = '<p style="color:#ccc; text-align:center; width:100%; margin-top:40px;">Carregando a loja de hoje...</p>';
+          return;
+        }
+        if (filtrados.length === 0) {
+          grid.innerHTML = '<p style="color:#888; text-align:center; width:100%; margin-top:40px;">Nenhum item encontrado com esse filtro.</p>';
+          return;
+        }
+
+        grid.innerHTML = '';
+        grid.style.display = 'block'; // as faixas controlam o próprio layout em grade internamente
+
+        // Mantém a ordem das seções igual à loja do dia (secoesLoja já vem ordenada por layout.index)
+        const ordemSecoes = secoesLoja.length > 0 ? secoesLoja : [...new Set(filtrados.map(o => o.secao))];
+
+        ordemSecoes.forEach(nomeSecao => {
+          const ofertasDaSecao = filtrados.filter(o => o.secao === nomeSecao);
+          if (ofertasDaSecao.length === 0) return;
+
+          const faixa = document.createElement('div');
+          faixa.className = 'secao-loja';
+
+          const titulo = document.createElement('div');
+          titulo.className = 'secao-loja-titulo';
+          titulo.textContent = nomeSecao;
+          faixa.appendChild(titulo);
+
+          const gridDaSecao = document.createElement('div');
+          gridDaSecao.className = 'grid';
+          ofertasDaSecao.forEach(oferta => gridDaSecao.appendChild(criarCardOferta(oferta)));
+          faixa.appendChild(gridDaSecao);
+
+          grid.appendChild(faixa);
+        });
+
+        document.getElementById('count').textContent = meuVestiario.length;
         return;
       }
+
+      // === OUTRAS ABAS: continuam com o grid único paginado / scroll infinito de sempre ===
+      grid.style.display = 'grid';
 
       const fim = Math.min(itensMostrados + itensPorVez, filtrados.length);
 
@@ -1149,6 +1337,10 @@
         introText = primeiro.introduction.text;
       }
 
+      const linhaExtra = currentTab === 'shop'
+        ? `<div class="info info-preco">💰 ${oferta.precoFinal} V-Bucks${oferta.isBundle ? ' (pacote)' : ''}</div>`
+        : `<div class="info info-tempo">${introText}</div>`;
+
       const card = document.createElement('div');
       card.className = 'card';
       card.onclick = () => oferta.isBundle ? abrirModalOferta(oferta) : abrirModal(oferta.itens[0]);
@@ -1158,7 +1350,7 @@
         <p>${oferta.nome}</p>
         <div class="info">${subtitulo}</div>
         ${conjuntosUnicos.length > 0 ? `<div class="info info-conjunto">Conjunto: ${conjuntosUnicos.join(', ')}</div>` : ''}
-        <div class="info info-tempo">${introText}</div>
+        ${linhaExtra}
         <div class="info" style="color: #ff7b00; font-weight: bold;">Loja de Itens</div>
         <button class="add-btn" style="background-color: ${btnBg}; color: ${btnColor};" onclick="event.stopPropagation(); handleButtonClickOferta('${oferta.idOferta}', this)">${btnText}</button>
       `;
@@ -1271,13 +1463,14 @@
     }
 
     function exportarVestiario() {
-      if (meuVestiario.length === 0 && Object.keys(rendersManuaisSalvos).length === 0) {
-        alert("Seu vestiário está vazio e não há renders manuais salvos!"); return;
+      if (meuVestiario.length === 0 && Object.keys(rendersManuaisSalvos).length === 0 && Object.keys(historicoLoja).length === 0) {
+        alert("Não há nada pra exportar ainda!"); return;
       }
       const dataStr = JSON.stringify({
         vestiario: meuVestiario,
         rendersManuais: rendersManuaisSalvos,
-        fundoTela: meuFundoAtual
+        fundoTela: meuFundoAtual,
+        historicoLoja: historicoLoja
       }, null, 2);
       const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
       const link = document.createElement('a');
@@ -1293,10 +1486,11 @@
           const imported = JSON.parse(e.target.result);
 
           // Compatível com o formato antigo (arquivo era só um array de itens do vestiário)
-          // e com o novo (objeto com vestiario + rendersManuais + fundoTela juntos).
+          // e com o novo (objeto com vestiario + rendersManuais + fundoTela + historicoLoja juntos).
           const vestiarioImportado = Array.isArray(imported) ? imported : (imported.vestiario || []);
           const rendersImportados = Array.isArray(imported) ? {} : (imported.rendersManuais || {});
           const fundoImportado = Array.isArray(imported) ? null : (imported.fundoTela || null);
+          const historicoImportado = Array.isArray(imported) ? {} : (imported.historicoLoja || {});
 
           meuVestiario = vestiarioImportado;
           localStorage.setItem('meuVestiario', JSON.stringify(meuVestiario));
@@ -1307,13 +1501,29 @@
           salvarRendersManuaisNoStorage();
           const qtdRendersNovos = Object.keys(rendersManuaisSalvos).length - qtdRendersAntes;
 
+          // Histórico de loja (preço, tag "Loja de Itens" e renders) também é MESCLADO — se o
+          // mesmo item tiver registro nos dois, fica o mais recente (compara a data salva).
+          const qtdHistoricoAntes = Object.keys(historicoLoja).length;
+          Object.keys(historicoImportado).forEach(id => {
+            const atual = historicoLoja[id];
+            const novo = historicoImportado[id];
+            if (!atual || !atual.data || (novo.data && novo.data >= atual.data)) {
+              historicoLoja[id] = novo;
+            }
+          });
+          salvarHistoricoLoja();
+          const qtdHistoricoNovos = Object.keys(historicoLoja).length - qtdHistoricoAntes;
+
           if (fundoImportado) {
             meuFundoAtual = fundoImportado;
             localStorage.setItem('fundoVestiario', fundoImportado);
             aplicarFundoCSS(fundoImportado);
           }
 
-          alert(`Importado ${vestiarioImportado.length} item(ns) do vestiário${qtdRendersNovos > 0 ? `, ${qtdRendersNovos} render(s) manual(is) novo(s)` : ''}${fundoImportado ? ' e o fundo de tela' : ''}!`);
+          alert(`Importado ${vestiarioImportado.length} item(ns) do vestiário`
+            + (qtdRendersNovos > 0 ? `, ${qtdRendersNovos} render(s) manual(is) novo(s)` : '')
+            + (qtdHistoricoNovos > 0 ? `, ${qtdHistoricoNovos} registro(s) de loja novo(s)` : '')
+            + (fundoImportado ? ' e o fundo de tela' : '') + '!');
           mostrarItens();
         } catch (err) { alert("Arquivo inválido!"); }
       };
@@ -1326,20 +1536,45 @@
         tab.classList.add('active');
         currentTab = tab.dataset.tab;
 
-        const containerSecoes = document.getElementById('lojaSecoes');
+        const perfilContainer = document.getElementById('perfilContainer');
+        const controlsPrincipais = document.getElementById('controlsPrincipais');
+        const grid = document.getElementById('grid');
+        const sentinela = document.getElementById('sentinela');
+
+        if (currentTab === 'perfil') {
+          perfilContainer.style.display = 'block';
+          controlsPrincipais.style.display = 'none';
+          grid.style.display = 'none';
+          sentinela.style.display = 'none';
+          return;
+        }
+
+        perfilContainer.style.display = 'none';
+        controlsPrincipais.style.display = 'flex';
+        grid.style.display = 'grid';
+
         if (currentTab === 'shop') {
-          secaoLojaAtiva = null;
           mostrarItens(); // mostra "Carregando..." imediatamente
           await carregarLojaHoje();
-          containerSecoes.style.display = secoesLoja.length > 1 ? 'flex' : 'none';
-        } else {
-          containerSecoes.style.display = 'none';
         }
         mostrarItens();
       });
     });
 
+    // Botão flutuante "voltar ao topo" — aparece só depois de rolar bastante a página
+    window.addEventListener('scroll', () => {
+      const btnTopo = document.getElementById('btnVoltarTopo');
+      btnTopo.style.display = window.scrollY > 600 ? 'flex' : 'none';
+      btnTopo.style.alignItems = 'center';
+      btnTopo.style.justifyContent = 'center';
+    });
+
     carregarTodos();
   </script>
+  <button id="btnVoltarTopo" onclick="window.scrollTo({top:0, behavior:'smooth'})" title="Voltar ao topo"
+          style="display:none; position:fixed; bottom:30px; right:30px; width:52px; height:52px; border-radius:50%;
+                 background:#ffcc00; color:black; border:none; font-size:1.5rem; font-weight:bold; cursor:pointer;
+                 box-shadow:0 4px 14px rgba(0,0,0,0.5); z-index:200; transition:0.2s;">↑</button>
+
 </body>
 </html>
