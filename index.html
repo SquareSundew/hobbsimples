@@ -1185,11 +1185,8 @@
         variantsContainer.appendChild(hdChannelDiv);
       }
 
-      // Verifica se existe render manual para ocultar os ícones/partes
-      const temRenderManual = (rendersManuais && rendersManuais.length > 0);
+      if (item.variants && item.variants.length > 0) {
 
-      // Só cria a aba de ÍCONES / PARTES se NÃO tiver render manual
-      if (!temRenderManual && item.variants && item.variants.length > 0) {
         item.variants.forEach(v => {
           const channelDiv = document.createElement('div');
           channelDiv.className = 'variant-channel';
