@@ -242,6 +242,16 @@
             Substituir tudo que já estava salvo pra esse ID (em vez de adicionar como estilo novo)
           </label>
           <button class="btn-add-conjunto" onclick="salvarRenderManual()">Salvar Render Manual</button>
+          
+          <!-- === BOTÕES DE EXPORTAR/IMPORTAR RENDERS MANUAIS === -->
+          <div style="display: flex; gap: 10px; margin-top: 10px;">
+            <button style="flex: 1; padding: 12px; background: rgba(0,0,0,0.7); border: 2px solid #ffcc00; border-radius: 8px; color: #ffcc00; font-weight: bold; cursor: pointer; transition: 0.2s;" onmouseover="this.style.background='#ffcc00'; this.style.color='black';" onmouseout="this.style.background='rgba(0,0,0,0.7)'; this.style.color='#ffcc00';" onclick="exportarRendersManuais()">Exportar IDs e Imagens</button>
+            <label style="flex: 1; padding: 12px; background: rgba(0,0,0,0.7); border: 2px solid #50c878; border-radius: 8px; color: #50c878; font-weight: bold; cursor: pointer; text-align: center; transition: 0.2s;" onmouseover="this.style.background='#50c878'; this.style.color='black';" onmouseout="this.style.background='rgba(0,0,0,0.7)'; this.style.color='#50c878';">
+              Importar
+              <input type="file" accept=".json" style="display:none;" onchange="importarRendersManuais(event)">
+            </label>
+          </div>
+          <!-- =================================================== -->
         </div>
         <div id="listaRendersManuais" style="display:flex; flex-direction:column; gap:12px;"></div>
       </div>
@@ -446,6 +456,70 @@
       renderizarListaRendersManuais();
       mostrarItens();
     }
+
+    // === FUNÇÕES DE EXPORTAR E IMPORTAR RENDERS MANUAIS ===
+    function exportarRendersManuais() {
+      // Verifica se você tem algum render manual salvo
+      if (Object.keys(rendersManuaisSalvos).length === 0) {
+        alert("Sua lista está vazia! Adicione algum ID e Render primeiro.");
+        return;
+      }
+      
+      // Transforma seus IDs e URLs em texto
+      const dataStr = JSON.stringify(rendersManuaisSalvos, null, 2);
+      const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+      
+      // Baixa o arquivo para o seu PC
+      const link = document.createElement('a');
+      link.href = dataUri;
+      link.download = 'meus-renders-manuais.json';
+      link.click();
+    }
+
+    function importarRendersManuais(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const importado = JSON.parse(e.target.result);
+          
+          let itensAdicionados = 0;
+          
+          // O código lê o arquivo e adiciona os IDs e Imagens sem apagar o que o Juako já tem
+          for (const [id, urls] of Object.entries(importado)) {
+            if (Array.isArray(urls)) {
+              if (!rendersManuaisSalvos[id]) {
+                rendersManuaisSalvos[id] = [];
+              }
+              // Só adiciona a URL se ela já não estiver lá
+              urls.forEach(url => {
+                if (!rendersManuaisSalvos[id].includes(url)) {
+                  rendersManuaisSalvos[id].push(url);
+                }
+              });
+              itensAdicionados++;
+            }
+          }
+
+          // Salva no navegador e atualiza a tela
+          salvarRendersManuaisNoStorage();
+          renderizarListaRendersManuais();
+          mostrarItens(); 
+          
+          alert(`Sucesso! Foram importados os renders de ${itensAdicionados} IDs.`);
+        } catch (err) {
+          alert("Erro: O arquivo selecionado não é válido.");
+        }
+        
+        // Limpa o botão para poder importar outro arquivo depois, se quiser
+        event.target.value = '';
+      };
+      
+      reader.readAsText(file);
+    }
+    // =======================================================
 
     let todosItens = [];
     let meuVestiario = JSON.parse(localStorage.getItem('meuVestiario')) || [];
