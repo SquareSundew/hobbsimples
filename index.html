@@ -1250,8 +1250,8 @@
         variantsContainer.appendChild(hdChannelDiv);
       }
 
-      if (item.variants && item.variants.length > 0) {
-
+      // Adicionamos a condição para ocultar se já houver renders
+      if (item.variants && item.variants.length > 0 && opcoesCarrossel.length === 0) {
         item.variants.forEach(v => {
           const channelDiv = document.createElement('div');
           channelDiv.className = 'variant-channel';
