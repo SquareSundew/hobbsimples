@@ -118,13 +118,32 @@
 
     <div class="tabs">
       <div class="tab active" data-tab="all">Todos os Itens</div>
+      <div class="tab" data-tab="map">Mapa da Ilha</div>
       <div class="tab" data-tab="my">Meu Vestiário (<span id="count">0</span>)</div>
       <div class="tab" data-tab="shop">Loja de Hoje</div>
-      <div class="tab" data-tab="perfil">Perfil</div>
+      <div class="tab" data-tab="perfil" style="display: flex; align-items: center; gap: 10px; padding: 8px 24px;">
+        <img id="tabPerfilAvatar" src="" style="width: 26px; height: 26px; border-radius: 50%; object-fit: cover; background: #222;">
+        <span id="tabPerfilNome" style="font-weight: inherit;">Perfil</span>
+      </div>
     </div>
 
     <!-- ABA MEU PERFIL: estatísticas do jogador via /v2/stats/br/v2 -->
     <div id="perfilContainer" style="display:none; max-width:900px; margin:20px auto; padding:0 20px;">
+      <!-- === CABEÇALHO DO PERFIL (FOTO E NOME) === -->
+      <div style="display:flex; align-items:center; gap:20px; margin-bottom:25px; background:rgba(0,0,0,0.4); padding:20px; border-radius:14px; border:2px solid rgba(255,255,255,0.15);">
+        <div style="position:relative; width:100px; height:100px; cursor:pointer;" onclick="abrirModalAvatar()">
+          <img id="perfilAvatarImg" src="https://fortnite-api.com/images/cosmetics/br/cid_028_athena_commando_f/icon.png" style="width:100%; height:100%; object-fit:cover; border-radius:50%; border:3px solid #ffcc00; background:#22222200; transition:0.2s;">
+          <div style="position:absolute; bottom:0; right:0; background:#ffcc00; color:black; border-radius:50%; width:28px; height:28px; display:flex; justify-content:center; align-items:center; font-weight:bold; font-size:16px;" title="Trocar Avatar">✎</div>
+        </div>
+        <div style="flex:1;">
+          <input type="text" id="perfilNomeExibicao" placeholder="Digite seu Nickname..." oninput="salvarNomeExibicao()"
+                 style="background:transparent; border:none; color:white; font-size:2.2rem; font-weight:900; font-style:italic; text-transform:uppercase; outline:none; width:100%; text-shadow: 0 0 10px rgba(0,0,0,0.8); border-bottom: 2px dashed transparent; transition:0.2s; padding:0;"
+                 onfocus="this.style.borderBottom='2px dashed #555'" onblur="this.style.borderBottom='2px dashed transparent'">
+          <div style="color:#aaa; font-size:0.9rem; margin-top:4px;"></div>
+        </div>
+      </div>
+  
+      <!-- A parte da API Key continua aqui embaixo... -->
       <div style="background:rgba(0,0,0,0.5); border:2px solid rgba(255,255,255,0.15); border-radius:14px; padding:24px; margin-bottom:20px;">
         <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
           <input type="text" id="perfilApiKey" placeholder="Sua API Key (fortnite-api.com/profile)"
@@ -144,6 +163,14 @@
         <button class="btn-config" onclick="abrirRendersManuais()">Renders Manuais</button>
       </div>
       <div id="perfilResultado"></div>
+    </div>
+
+    <!-- ABA MAPA -->
+    <div id="mapContainer" style="display:none; max-width:1000px; margin:20px auto; padding:0 20px; text-align:center;">
+      <h2 style="color:#ffcc00; font-style:italic; text-transform:uppercase; margin-bottom: 20px;">Capítulo 7 Temporada 3</h2>
+      <div id="mapResult">
+        <p style="color:#ccc;">Carregando mapa...</p>
+      </div>
     </div>
 
     <div class="controls" id="controlsPrincipais">
@@ -254,7 +281,29 @@
           </div>
           <!-- =================================================== -->
         </div>
+        
+        <!-- === CAMPO DE PESQUISA === -->
+        <input type="text" id="pesquisaRenderManual" placeholder="Pesquisar ID já salvo..." oninput="renderizarListaRendersManuais()"
+               style="padding:12px; border-radius:8px; border:2px solid #555; background:#111; color:white; font-size:0.95rem; margin-top:10px; margin-bottom:15px; width:100%; box-sizing:border-box;">
+        <!-- ========================= -->
+        
         <div id="listaRendersManuais" style="display:flex; flex-direction:column; gap:12px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE ESCOLHA DE AVATAR -->
+  <div id="avatarModalOverlay" class="modal-overlay" onclick="fecharModalAvatar(event)">
+    <div class="config-content" style="width:700px; height:auto; max-height:85vh;" onclick="event.stopPropagation()">
+      <button class="modal-close" onclick="fecharModalAvatar(event)">&times;</button>
+      <div class="config-header">
+        <h2>Escolher Avatar</h2>
+        <p style="color:#aaa; font-size:1rem; margin-top:8px;">Pesquise e selecione o ícone de qualquer skin do jogo.</p>
+        <input type="text" placeholder="Pesquisar nome da skin..." oninput="renderizarListaAvatares(this.value)"
+               style="margin-top:14px; width:100%; max-width:400px; padding:12px 18px; background:rgba(0,0,0,0.5); border:2px solid rgba(255,255,255,0.3); border-radius:50px; color:white; font-size:1rem;">
+      </div>
+      <div class="config-body" id="avatarGrid" style="display:flex; flex-wrap:wrap; gap:12px; justify-content:center; padding:20px; overflow-y:auto; height: 400px;">
+        <!-- Preenchido via JS -->
       </div>
     </div>
   </div>
@@ -378,6 +427,11 @@
       document.getElementById('renderManualModalOverlay').style.display = 'flex';
       document.getElementById('renderManualId').value = '';
       document.getElementById('renderManualUrls').value = '';
+      
+      // Limpa a barra de pesquisa toda vez que o modal é aberto
+      const pesquisaInput = document.getElementById('pesquisaRenderManual');
+      if (pesquisaInput) pesquisaInput.value = '';
+      
       renderizarListaRendersManuais();
     }
 
@@ -420,10 +474,21 @@
 
     function renderizarListaRendersManuais() {
       const lista = document.getElementById('listaRendersManuais');
-      const ids = Object.keys(rendersManuaisSalvos);
+      const inputBusca = document.getElementById('pesquisaRenderManual');
+      const termo = inputBusca ? inputBusca.value.toLowerCase().trim() : '';
+
+      const todosIds = Object.keys(rendersManuaisSalvos);
+
+      if (todosIds.length === 0) {
+        lista.innerHTML = '<p style="color:#777; text-align:center;">Nenhum render manual salvo ainda.</p>';
+        return;
+      }
+
+      // Filtra os IDs baseados no que foi digitado na barra de pesquisa
+      const ids = todosIds.filter(id => id.toLowerCase().includes(termo));
 
       if (ids.length === 0) {
-        lista.innerHTML = '<p style="color:#777; text-align:center;">Nenhum render manual salvo ainda.</p>';
+        lista.innerHTML = '<p style="color:#777; text-align:center;">Nenhum ID encontrado com essa pesquisa.</p>';
         return;
       }
 
@@ -1679,19 +1744,30 @@
         currentTab = tab.dataset.tab;
 
         const perfilContainer = document.getElementById('perfilContainer');
+        const mapContainer = document.getElementById('mapContainer');
         const controlsPrincipais = document.getElementById('controlsPrincipais');
         const grid = document.getElementById('grid');
         const sentinela = document.getElementById('sentinela');
 
+        // Esconde todos os containers primeiro
+        perfilContainer.style.display = 'none';
+        mapContainer.style.display = 'none';
+        controlsPrincipais.style.display = 'none';
+        grid.style.display = 'none';
+        sentinela.style.display = 'none';
+
         if (currentTab === 'perfil') {
           perfilContainer.style.display = 'block';
-          controlsPrincipais.style.display = 'none';
-          grid.style.display = 'none';
-          sentinela.style.display = 'none';
           return;
         }
 
-        perfilContainer.style.display = 'none';
+        if (currentTab === 'map') {
+          mapContainer.style.display = 'block';
+          carregarMapa(); // Dispara o fetch do mapa
+          return;
+        }
+
+        // Se for "all", "my" ou "shop", mostra os botões e a grade
         controlsPrincipais.style.display = 'flex';
         grid.style.display = 'grid';
 
@@ -1710,6 +1786,105 @@
       btnTopo.style.alignItems = 'center';
       btnTopo.style.justifyContent = 'center';
     });
+
+    let mapaCarregado = false;
+    async function carregarMapa() {
+      if (mapaCarregado) return;
+      const container = document.getElementById('mapResult');
+      container.innerHTML = '<p style="color:#ccc;">Buscando o mapa mais recente...</p>';
+      
+      try {
+        // A API oficial do mapa, já pedindo os nomes em português
+        const res = await fetch('https://fortnite-api.com/v1/map?language=pt-BR');
+        const json = await res.json();
+        
+        // images.pois traz a imagem do mapa já com os nomes dos locais desenhados
+        if (json.data && json.data.images && json.data.images.pois) {
+          const urlMapa = json.data.images.pois;
+          container.innerHTML = `<img src="${urlMapa}" alt="Mapa do Fortnite" style="max-width:100%; border-radius:12px; border:2px solid #555; box-shadow:0 0 20px rgba(0,0,0,0.8); cursor:pointer;" onclick="window.open('${urlMapa}', '_blank')" title="Clique para abrir em alta resolução">`;
+          mapaCarregado = true;
+        } else {
+          container.innerHTML = '<p style="color:#ff7b7b;">Erro: Imagem do mapa não encontrada na API.</p>';
+        }
+      } catch (error) {
+        console.error("Erro ao carregar mapa:", error);
+        container.innerHTML = '<p style="color:#ff7b7b;">Não foi possível conectar à API do mapa.</p>';
+      }
+    }
+
+    // === SISTEMA DE PERFIL (AVATAR E NOME) ===
+    let avatarAtual = localStorage.getItem('perfilAvatarLocker') || "https://fortnite-api.com/images/cosmetics/br/cid_028_athena_commando_f/icon.png";
+    let nomePerfilAtual = localStorage.getItem('perfilNomeLocker') || "";
+
+    // Aplica os dados salvos quando a página carrega (na tela principal E na aba)
+    document.getElementById('perfilAvatarImg').src = avatarAtual;
+    document.getElementById('tabPerfilAvatar').src = avatarAtual;
+    
+    document.getElementById('perfilNomeExibicao').value = nomePerfilAtual;
+    // Se não tiver nome salvo, mostra a palavra "Perfil" na aba para não ficar vazia
+    document.getElementById('tabPerfilNome').textContent = nomePerfilAtual || "Perfil";
+
+    function salvarNomeExibicao() {
+        const nome = document.getElementById('perfilNomeExibicao').value;
+        localStorage.setItem('perfilNomeLocker', nome);
+        
+        // Espelha o que está sendo digitado direto na aba lá em cima
+        document.getElementById('tabPerfilNome').textContent = nome || "Perfil";
+    }
+
+    function abrirModalAvatar() {
+        document.getElementById('avatarModalOverlay').style.display = 'flex';
+        renderizarListaAvatares('');
+    }
+
+    function fecharModalAvatar(event) {
+        if (event) event.preventDefault();
+        document.getElementById('avatarModalOverlay').style.display = 'none';
+    }
+
+    function renderizarListaAvatares(termoPesquisa = '') {
+        const grid = document.getElementById('avatarGrid');
+        
+        if (todosItens.length === 0) {
+            grid.innerHTML = '<p style="color:#ffcc00; width:100%; text-align:center;">Aguarde os itens carregarem...</p>';
+            return;
+        }
+
+        // Filtra apenas skins (outfits) que possuem ícone
+        let skins = todosItens.filter(i => i.type && i.type.value === 'outfit' && i.images && i.images.icon);
+
+        if (termoPesquisa) {
+            const busca = termoPesquisa.toLowerCase().trim();
+            skins = skins.filter(i => i.name && i.name.toLowerCase().includes(busca));
+        }
+
+        // Limita a 60 opções na tela para o modal abrir instantaneamente
+        const exibidas = skins.slice(0, 60);
+
+        if (exibidas.length === 0) {
+            grid.innerHTML = '<p style="color:#777; width:100%; text-align:center;">Nenhuma skin encontrada com esse nome.</p>';
+            return;
+        }
+
+        grid.innerHTML = exibidas.map(skin => `
+            <img loading="lazy" src="${skin.images.icon}" title="${skin.name}"
+                 onclick="selecionarAvatar('${skin.images.icon}')"
+                 style="width:85px; height:85px; border-radius:50%; background:#111; border:3px solid ${avatarAtual === skin.images.icon ? '#ffcc00' : '#444'}; cursor:pointer; transition:0.2s;"
+                 onmouseover="this.style.transform='scale(1.1)'; this.style.borderColor='#ffcc00'"
+                 onmouseout="this.style.transform='scale(1)'; this.style.borderColor='${avatarAtual === skin.images.icon ? '#ffcc00' : '#444'}'">
+        `).join('');
+    }
+
+    function selecionarAvatar(url) {
+        avatarAtual = url;
+        localStorage.setItem('perfilAvatarLocker', url);
+        
+        // Atualiza a foto principal e a miniatura da aba
+        document.getElementById('perfilAvatarImg').src = url;
+        document.getElementById('tabPerfilAvatar').src = url;
+        
+        fecharModalAvatar();
+    }
 
     carregarTodos();
   </script>
