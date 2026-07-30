@@ -75,6 +75,37 @@
     .modal-left { flex: 1.2; background: radial-gradient(circle, #2b5b99 0%, #08285c 100%); display: flex; align-items: center; justify-content: center; padding: 20px; border-right: 2px solid #222; }
     .modal-left.is-skin { align-items: flex-end; padding: 20px 20px 0; }
     .modal-left img { max-width: 100%; max-height: 500px; width: auto; height: auto; object-fit: contain; filter: drop-shadow(0px 10px 15px rgba(0,0,0,0.6)); transition: all 0.3s ease; }
+    /* --- PARA TELAS DE CARREGAMENTO --- */
+    .modal-content.is-loading-modal {
+      flex-direction: column;
+      width: 750px; 
+    }
+    .modal-content.is-loading-modal .modal-left {
+      flex: none;
+      width: 100%;
+      padding: 0;
+      background: #0a0a0f; /* Fundo mais escuro para destacar a arte */
+      border-right: none;
+      border-bottom: 2px solid #222;
+    }
+    .modal-content.is-loading-modal .modal-left img {
+      width: 100%;
+      height: auto;
+      max-height: 450px;
+      object-fit: contain; 
+      display: block;
+    }
+    .modal-content.is-loading-modal .modal-close {
+      background: rgba(0, 0, 0, 0.7);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+    }
+    /* ---------------------------------------------- */
     .modal-right { flex: 1; padding: 30px; overflow-y: auto; display: flex; flex-direction: column; background: #1e1e28; }
     .modal-close { position: absolute; top: 15px; right: 20px; background: transparent; border: none; color: #aaa; font-size: 28px; cursor: pointer; transition: 0.2s; z-index: 10; }
     .modal-close:hover { color: #ffcc00; transform: scale(1.1); }
@@ -194,6 +225,12 @@
         <option value="music">Música de Lobby</option>
         <option value="loadingscreen">Tela de Carregamento</option>
       </select>
+      
+      <!-- COMEÇO DO CÓDIGO -->
+      <select id="seasonFilter" onchange="aplicarFiltros()">
+        <option value="">Todas as Temporadas</option>
+      </select>
+      <!-- FIM DO CÓDIGO -->
       
       <input type="text" id="setFilter" class="search search-conjunto" list="setOptions" placeholder="Buscar Conjunto..." oninput="aplicarFiltros()">
       <datalist id="setOptions"></datalist>
@@ -778,6 +815,42 @@
           setDatalist.appendChild(option);
         });
 
+        // === INÍCIO: PREENCHER FILTRO DE TEMPORADAS ===
+        const listaTemporadas = [];
+        const seasonsVistas = new Set();
+        todosItens.forEach(item => {
+            if (item.introduction && item.introduction.text) {
+                const text = item.introduction.text;
+                if (!seasonsVistas.has(text)) {
+                    seasonsVistas.add(text);
+                    // Procura os números de capítulo e temporada no texto para podermos ordenar direitinho
+                    const capMatch = text.match(/Capítulo (\d+)/i);
+                    const tempMatch = text.match(/Temporada (\d+)/i) || text.match(/Temporada (X)/i);
+                    let cap = capMatch ? parseInt(capMatch[1]) : 0;
+                    let temp = 0;
+                    if (tempMatch) {
+                        temp = tempMatch[1].toUpperCase() === 'X' ? 10 : parseInt(tempMatch[1]);
+                    }
+                    listaTemporadas.push({ text: text, cap: cap, temp: temp });
+                }
+            }
+        });
+        
+        // Ordena por Capítulo primeiro e depois por Temporada
+        listaTemporadas.sort((a, b) => {
+            if (a.cap !== b.cap) return a.cap - b.cap;
+            return a.temp - b.temp;
+        });
+
+        const seasonSelect = document.getElementById('seasonFilter');
+        listaTemporadas.forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s.text;
+            opt.textContent = s.text; // Ex: "Capítulo 7, Temporada 3"
+            seasonSelect.appendChild(opt);
+        });
+        // === FIM: PREENCHER FILTRO DE TEMPORADAS ===
+
         mostrarMais();
 
         // Carrega a loja de hoje em paralelo (sem travar a tela) só pra saber COM CERTEZA
@@ -1097,13 +1170,21 @@
 
     function abrirModal(itemOriginal) {
       document.getElementById('modalOverlay').style.display = 'flex';
-      // Verifica se o item é uma skin para jogar a imagem para baixo
+      
       const modalLeft = document.querySelector('.modal-left');
+      const modalContent = document.querySelector('.modal-content'); 
+      
+      // Limpa as regras anteriores toda vez que abre um modal novo
+      modalLeft.classList.remove('is-skin'); 
+      modalContent.classList.remove('is-loading-modal'); 
+      
+      // Aplica o formato certo dependendo do tipo do item
       if (itemOriginal.type && itemOriginal.type.value === 'outfit') {
         modalLeft.classList.add('is-skin');
-      } else {
-        modalLeft.classList.remove('is-skin');
+      } else if (itemOriginal.type && (itemOriginal.type.value === 'loadingscreen' || itemOriginal.type.backendValue === 'AthenaLoadingScreen')) {
+        modalContent.classList.add('is-loading-modal'); 
       }
+      
       document.getElementById('modalPacoteWrap').style.display = 'none';
 
       // Se esse item está na loja hoje (mesmo vindo de "Todos os Itens" ou "Meu Vestiário"),
@@ -1141,16 +1222,31 @@
         : extrairRenderImagesReais(item._newDisplayAsset);
       const rendersManuais = obterRendersManuais(item.id);
       // Prioridade: render MANUAL (cadastrado pelo painel) sempre vence — é intencional e
-      // explícito. Depois, imagem própria do item (featured). O render da loja só é usado
+      // explícito. Depois, a versão WIDE (background) se for tela de carregamento.
+      // Depois imagem própria do item (featured). O render da loja só é usado
       // quando vem de venda INDIVIDUAL de verdade; se o item só existe em pacote, cai pro ícone.
+      // Prioridade: render MANUAL (cadastrado pelo painel) sempre vence
       if (rendersManuais && rendersManuais.length > 0) {
         mainImg = rendersManuais[0];
+        
+      // Se for TELA DE CARREGAMENTO, usa a versão Widescreen (background)
+      } else if (item.type && (item.type.value === 'loadingscreen' || item.type.backendValue === 'AthenaLoadingScreen') && item.images && item.images.other && item.images.other.background) { 
+        mainImg = item.images.other.background;
+        
+      // Se for SPRAY, usa a versão 'decal' (imagem do desenho puro sem a parede de fundo)
+      } else if (item.type && item.type.value === 'spray' && item.images && item.images.other && item.images.other.decal) {
+        mainImg = item.images.other.decal;
+        
+      // --- REGRA NOVA: Se for EMOTICON, força o ícone para evitar links quebrados da Loja ---
+      } else if (item.type && (item.type.value === 'emoji' || item.type.backendValue === 'AthenaEmoji') && item.images) {
+        mainImg = item.images.icon || item.images.smallIcon || mainImg;
+        
       } else if (item.images && item.images.featured) {
         mainImg = item.images.featured;
       } else if (rendersReaisDaLoja.length > 0 && !item._bundle) {
         mainImg = rendersReaisDaLoja[0].imagem;
       } else if (item.images) {
-        mainImg = item.images.renderImage || item.images.icon || mainImg;
+        mainImg = item.images.renderImage || item.images.icon || item.images.smallIcon || mainImg;
       }
       const modalMainImg = document.getElementById('modalMainImg');
       modalMainImg.src = mainImg;
@@ -1320,10 +1416,12 @@
       const raridade = document.getElementById('rarityFilter').value;
       const tipo = document.getElementById('typeFilter').value;
       const conjunto = document.getElementById('setFilter').value.toLowerCase().trim();
+      
+      // NOVA LINHA
+      const temporada = document.getElementById('seasonFilter').value;
 
       let filtrados;
       if (currentTab === 'shop') {
-        // Filtra por OFERTA: basta que QUALQUER item incluso no pacote bata com o filtro.
         filtrados = itensParaMostrar.filter(oferta => {
           const nomeOferta = oferta.nome.toLowerCase();
           const matchSearchOferta = !termo || nomeOferta.includes(termo);
@@ -1334,8 +1432,10 @@
           const matchRarity = !raridade || oferta.itens.some(i => i.rarity && i.rarity.displayValue === raridade);
           const matchType = !tipo || oferta.itens.some(i => i.type && i.type.value === tipo);
           const matchSet = !conjunto || oferta.itens.some(i => i.set && i.set.value && i.set.value.toLowerCase().includes(conjunto));
-
-          return (matchSearchOferta || matchSearchItens) && matchRarity && matchType && matchSet;
+          
+          // NOVA LINHA E RETORNO ATUALIZADO
+          const matchSeason = !temporada || oferta.itens.some(i => i.introduction && i.introduction.text === temporada);
+          return (matchSearchOferta || matchSearchItens) && matchRarity && matchType && matchSet && matchSeason;
         });
       } else {
         filtrados = itensParaMostrar.filter(item => {
@@ -1348,8 +1448,10 @@
           const matchRarity = !raridade || itemRaridade === raridade;
           const matchType = !tipo || itemTipo === tipo;
           const matchSet = !conjunto || itemConjunto.includes(conjunto);
-
-          return matchSearch && matchRarity && matchType && matchSet;
+          
+          // NOVA LINHA E RETORNO ATUALIZADO
+          const matchSeason = !temporada || (item.introduction && item.introduction.text === temporada);
+          return matchSearch && matchRarity && matchType && matchSet && matchSeason;
         });
       }
 
@@ -1665,6 +1767,7 @@
       document.getElementById('search').value = '';
       document.getElementById('rarityFilter').value = '';
       document.getElementById('typeFilter').value = '';
+      document.getElementById('seasonFilter').value = '';
       document.getElementById('setFilter').value = '';
       mostrarItens();
     }
