@@ -6,6 +6,10 @@
   <title>Fortnite Locker</title><img src="https://cms-assets.unrealengine.com/AVzjeqAbLRKi3W5jq0CAvz/ovBnvmuJSxO5xtgXZcef" alt="MDN logo" />
 
   <style>
+    @font-face {
+      font-family: 'Burbank Big Condensed Black';
+      src: url('BurbankBigCondensed-Black.ttf') format('truetype');
+    }
     body {
       margin: 0;
       font-family: 'Arial', sans-serif;
@@ -109,7 +113,16 @@
     .modal-right { flex: 1; padding: 30px; overflow-y: auto; display: flex; flex-direction: column; background: #1e1e28; }
     .modal-close { position: absolute; top: 15px; right: 20px; background: transparent; border: none; color: #aaa; font-size: 28px; cursor: pointer; transition: 0.2s; z-index: 10; }
     .modal-close:hover { color: #ffcc00; transform: scale(1.1); }
-    #modalTitle { margin: 0 0 10px 0; font-size: 2rem; text-transform: uppercase; font-style: italic; font-weight: 900; line-height: 1.1; text-align: center; }
+    #modalTitle { 
+  font-family: 'Burbank Big Condensed Black', 'Arial', sans-serif; /* <-- Adicionei isso aqui */
+  margin: 0 0 10px 0; 
+  font-size: 2rem; 
+  text-transform: uppercase; 
+  font-style: normal; 
+  font-weight: normal; 
+  line-height: 1.1; 
+  text-align: center; 
+}
     .modal-subtitle { display: flex; gap: 8px; justify-content: center; margin-bottom: 10px; align-items: center; font-size: 0.85rem; font-weight: bold; }
     .badge { padding: 4px 8px; border-radius: 6px; text-transform: uppercase; }
     .type-badge { background: transparent; color: white; border: 1px solid #777; }
@@ -1297,7 +1310,7 @@
       const ehClubeConjunto = conjuntosClube.includes(setName);
       const ehGratisConjunto = conjuntosGratis.includes(setName);
       
-      let fonte = "Eventos / Grátis / Outros";
+      let fonte = "";
       
       if (idsNaLojaHoje.has(item.id) || historicoLoja[item.id]) { fonte = "Loja de Itens"; }
       else if (ehLojaItem) { fonte = "Loja de Itens"; }
@@ -1588,7 +1601,7 @@
       const ehClubeConjunto = conjuntosClube.includes(setName);
       const ehGratisConjunto = conjuntosGratis.includes(setName);
       
-      let fonte = "Eventos / Grátis / Outros";
+      let fonte = "";
       let corFonte = "#50c878"; 
 
       if (idsNaLojaHoje.has(item.id) || historicoLoja[item.id]) { fonte = "Loja de Itens"; corFonte = "#ff7b00"; }
