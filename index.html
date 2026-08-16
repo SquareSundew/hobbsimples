@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Fortnite Locker</title><img src="https://cms-assets.unrealengine.com/AVzjeqAbLRKi3W5jq0CAvz/ovBnvmuJSxO5xtgXZcef" alt="MDN logo" />
-
+  <title>Fortnite Locker</title>
   <style>
     @font-face {
       font-family: 'Burbank Big Condensed Black';
@@ -20,11 +19,50 @@
     }
     .container { max-width: 1300px; margin: 0 auto; padding: 20px; }
     h1 { font-size: 3rem; margin: 20px 0; text-shadow: 0 0 10px #ffcc00; text-align: center; }
-    .tabs { display: flex; justify-content: center; gap: 15px; margin: 20px 0; }
-    .tab { padding: 12px 30px; background: rgba(0,0,0,0.7); border: 2px solid rgba(255,255,255,0.3); border-radius: 50px; cursor: pointer; transition: 0.2s; }
-    .tab:hover { background: rgba(255,204,0,0.2); }
-    .tab.active { background: #ffcc00; color: black; border-color: #ffcc00; font-weight: bold; }
+    .tabs { 
+      display: flex; 
+      justify-content: center; 
+      gap: 35px; 
+      margin: 0; 
+      padding: 0 20px;
+      background: rgba(0, 0, 0, 0.527); /* <-- Mesma cor e transparência da pesquisa! */
+      backdrop-filter: blur(1px); /* Efeito de vidro desfocado por trás */
+      border-bottom: 1px solid rgba(255, 255, 255, 0.137); /* Borda mais suave para combinar */
+      position: sticky; 
+      top: 0; 
+      z-index: 1000; 
+      height: 60px; 
+      width: 100%; 
+      box-sizing: border-box; 
+    }
     
+    .tab { 
+      padding: 0; 
+      background: transparent; 
+      border: none; 
+      border-radius: 0; 
+      color: #fff; 
+      font-weight: 900; 
+      font-size: 1.05rem; 
+      text-transform: uppercase; 
+      cursor: pointer; 
+      transition: color 0.2s; 
+      display: flex; 
+      align-items: center; 
+      border-bottom: 4px solid transparent; /* Linha invisível por padrão */
+      margin-bottom: -1px; /* Faz a linha amarela encaixar em cima da borda cinza */
+    }
+    
+    .tab:hover { 
+      background: transparent; 
+      color: #ccc; 
+    }
+    
+    .tab.active { 
+      background: transparent; 
+      color: #fff; 
+      border-bottom: 4px solid #fce83a; /* Amarelo clássico do jogo na aba ativa */
+    }
     .controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin: 25px 0; }
     .search { padding: 14px 20px; background: rgba(0, 0, 0, 0.527); border: 2px solid rgba(255,255,255,0.3); border-radius: 50px; color: white; font-size: 1.1rem; }
     .search-item { width: 320px; }
@@ -42,9 +80,9 @@
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; padding: 20px; }
     .secao-loja { margin: 30px 0; }
     .secao-loja-titulo {
+      font-family: 'Burbank Big Condensed Black', 'Arial', sans-serif;
       font-size: 1.6rem;
       font-weight: 900;
-      font-style: italic;
       text-transform: uppercase;
       letter-spacing: 1px;
       padding: 14px 20px;
@@ -157,19 +195,20 @@
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1></h1>
-
-    <div class="tabs">
+  
+  <div class="tabs">
+      <img src="https://cms-assets.unrealengine.com/AVzjeqAbLRKi3W5jq0CAvz/ovBnvmuJSxO5xtgXZcef" alt="Fortnite Logo" style="height: 32px; width: auto; position: absolute; left: 30px; top: 50%; transform: translateY(-50%);" />
       <div class="tab active" data-tab="all">Todos os Itens</div>
       <div class="tab" data-tab="map">Mapa da Ilha</div>
       <div class="tab" data-tab="my">Meu Vestiário (<span id="count">0</span>)</div>
       <div class="tab" data-tab="shop">Loja de Hoje</div>
+      <div class="tab" data-tab="news">Notícias</div>
       <div class="tab" data-tab="perfil" style="display: flex; align-items: center; gap: 10px; padding: 8px 24px;">
-        <img id="tabPerfilAvatar" src="" style="width: 26px; height: 26px; border-radius: 50%; object-fit: cover; background: #222;">
+        <img id="tabPerfilAvatar" src="" style="width: 32px; height: 30px; border-radius: 50%; object-fit: cover; background: #222;">
         <span id="tabPerfilNome" style="font-weight: inherit;">Perfil</span>
       </div>
     </div>
+  <div class="container">
 
     <!-- ABA MEU PERFIL: estatísticas do jogador via /v2/stats/br/v2 -->
     <div id="perfilContainer" style="display:none; max-width:900px; margin:20px auto; padding:0 20px;">
@@ -211,11 +250,21 @@
 
     <!-- ABA MAPA -->
     <div id="mapContainer" style="display:none; max-width:1000px; margin:20px auto; padding:0 20px; text-align:center;">
-      <h2 style="color:#ffcc00; font-style:italic; text-transform:uppercase; margin-bottom: 20px;">Capítulo 7 Temporada 3</h2>
+      <h2 style="font-family: 'Burbank Big Condensed Black', 'Arial', sans-serif; color:#ffcc00; margin-bottom: 25px; text-align: center; font-size: 3rem; text-shadow: 0 0 10px rgba(0,0,0,0.8);">Capítulo 7 Temporada 3</h2>
       <div id="mapResult">
         <p style="color:#ccc;">Carregando mapa...</p>
       </div>
     </div>
+    <!-- FIM DO CONTAINER DE MAPA -->
+    
+    <!-- ABA NOTÍCIAS -->
+    <div id="newsContainer" style="display:none; max-width:1200px; margin:20px auto; padding:0 20px;">
+      <h2 style="font-family: 'Burbank Big Condensed Black', 'Arial', sans-serif; color:#ffcc00; margin-bottom: 25px; text-align: center; font-size: 3rem; text-shadow: 0 0 10px rgba(0,0,0,0.8);">Novidades no Battle Royale</h2>
+      <div id="newsGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
+        <p style="color:#ccc; text-align:center; width:100%;">Carregando notícias...</p>
+      </div>
+    </div>
+    <!-- FIM DO CONTAINER DE NOTÍCIAS -->
 
     <div class="controls" id="controlsPrincipais">
       <input type="text" id="search" class="search search-item" placeholder="Pesquisar Item ou Conjunto..." onkeyup="aplicarFiltros()">
@@ -236,6 +285,7 @@
         <option value="emote">Emotes</option>
         <option value="pickaxe">Picaretas</option>
         <option value="music">Música de Lobby</option>
+        <option value="track">Música de Festival</option>
         <option value="loadingscreen">Tela de Carregamento</option>
       </select>
       
@@ -367,15 +417,15 @@
     }
     aplicarFundoCSS(meuFundoAtual);
 
-    const conjuntosLoja = ["verão de alto risco"];
-    const conjuntosPasse = ["inovação na ilha"];
+    const conjuntosLoja = [];
+    const conjuntosPasse = ["dragão carmesim", "estilo espacial", "espírito devorador", "inovação na ilha", "caça ao wolfe", "vazio desconhecido", "pato sortudo", "os novos sete"];
     const conjuntosClube = ["lebre ligeira"];
     const conjuntosGratis = []; 
 
     const itensLoja = [];
-    const itensPasse = ["a lâmina do vazio", "jules de elite", "símbolo dos sete"]; 
+    const itensPasse = []; 
     const itensClube = [];
-    const itensGratis = ["quadro de extração da slone", "sombrinha do elemental de ar"]; 
+    const itensGratis = ["quadro de extração da slone", "quadro de extração do wolfe", "quadro de extração da lâmina do vazio", "moldura de ex-quá-dição do patuno"]; 
 
     const manualRenders = {
       "Character_FunkyFeather_Cap": [
@@ -712,6 +762,21 @@
 
         entradas.forEach(entrada => {
           const listaItens = entrada.brItems || entrada.br || [];
+          
+          // Captura as músicas de festival se estiverem à venda na oferta
+          if (entrada.tracks) {
+            entrada.tracks.forEach(track => {
+              listaItens.push({
+                id: track.id,
+                name: track.title,
+                description: `Artista: ${track.artist}`,
+                type: { value: 'track', displayValue: 'Música de Festival' },
+                rarity: { value: 'epic', displayValue: 'Épico' },
+                images: { icon: track.albumArt, smallIcon: track.albumArt, featured: track.albumArt }
+              });
+            });
+          }
+
           if (listaItens.length === 0) return;
 
           // A entrada do Passe de Batalha vem com dezenas de itens (todas as recompensas do passe)
@@ -818,7 +883,29 @@
             return;
         }
 
-        todosItens = json.data.br.sort((a, b) => new Date(b.added || 0) - new Date(a.added || 0));
+        //--
+        let tracksFormatadas = [];
+        if (json.data.tracks) {
+          tracksFormatadas = json.data.tracks.map(track => ({
+            id: track.id,
+            name: track.title, // O título da música vira o nome do item
+            description: `Artista: ${track.artist} | Ano: ${track.releaseYear || 'Desconhecido'}`,
+            type: { value: 'track', displayValue: 'Música de Festival' },
+            rarity: { value: 'epic', displayValue: 'Épico' }, // Músicas ficam com fundo roxo/épico
+            images: { 
+              icon: track.albumArt, 
+              smallIcon: track.albumArt, 
+              featured: track.albumArt,
+              other: { background: track.albumArt }
+            },
+            added: track.added,
+            introduction: { text: 'Musica Festival' },
+            gameplayTags: ['festival']
+          }));
+        }
+
+        // 2. Junta os itens normais com as Músicas de Festival!
+        todosItens = [...json.data.br, ...tracksFormatadas].sort((a, b) => new Date(b.added || 0) - new Date(a.added || 0));
 
         const sets = [...new Set(todosItens.filter(i => i.set && i.set.value).map(i => i.set.value))].sort();
         const setDatalist = document.getElementById('setOptions');
@@ -1151,7 +1238,6 @@
         variantsContainer.appendChild(hdChannelDiv);
       }
 
-      // Preço do pacote
       const linhaPreco = document.getElementById('modalPrecoLinha');
       const precoLabel = document.getElementById('modalPrecoLabel');
       const precoTexto = document.getElementById('modalPreco');
@@ -1310,17 +1396,17 @@
       const ehClubeConjunto = conjuntosClube.includes(setName);
       const ehGratisConjunto = conjuntosGratis.includes(setName);
       
-      let fonte = "";
+      let fonte = "Nenhuma Categoria";
       
       if (idsNaLojaHoje.has(item.id) || historicoLoja[item.id]) { fonte = "Loja de Itens"; }
       else if (ehLojaItem) { fonte = "Loja de Itens"; }
       else if (ehClubeItem) { fonte = "Clube Fortnite"; }
       else if (ehPasseItem) { fonte = "Passe de Batalha"; }
-      else if (ehGratisItem) { fonte = "Grátis / Eventos"; }
+      else if (ehGratisItem) { fonte = "Grátis / Evento"; }
       else if (ehLojaConjunto) { fonte = "Loja de Itens"; }
       else if (ehClubeConjunto) { fonte = "Clube Fortnite"; }
       else if (ehPasseConjunto) { fonte = "Passe de Batalha"; }
-      else if (ehGratisConjunto) { fonte = "Grátis / Eventos"; }
+      else if (ehGratisConjunto) { fonte = "Grátis / Evento"; }
       else if (naLoja) { fonte = "Loja de Itens"; }
       else if (noClube) { fonte = "Clube Fortnite"; }
       else if (ehPasseAPI) { fonte = "Passe de Batalha"; }
@@ -1601,18 +1687,18 @@
       const ehClubeConjunto = conjuntosClube.includes(setName);
       const ehGratisConjunto = conjuntosGratis.includes(setName);
       
-      let fonte = "";
+      let fonte = "Nenhuma Categoria";
       let corFonte = "#50c878"; 
 
       if (idsNaLojaHoje.has(item.id) || historicoLoja[item.id]) { fonte = "Loja de Itens"; corFonte = "#ff7b00"; }
       else if (ehLojaItem) { fonte = "Loja de Itens"; corFonte = "#ff7b00"; }
       else if (ehClubeItem) { fonte = "Clube Fortnite"; corFonte = "#ff4d4d"; }
       else if (ehPasseItem) { fonte = "Passe de Batalha"; corFonte = "#b864ff"; }
-      else if (ehGratisItem) { fonte = "Grátis / Eventos"; corFonte = "#50c878"; }
+      else if (ehGratisItem) { fonte = "Grátis / Evento"; corFonte = "#50c878"; }
       else if (ehLojaConjunto) { fonte = "Loja de Itens"; corFonte = "#ff7b00"; }
       else if (ehClubeConjunto) { fonte = "Clube Fortnite"; corFonte = "#ff4d4d"; }
       else if (ehPasseConjunto) { fonte = "Passe de Batalha"; corFonte = "#b864ff"; }
-      else if (ehGratisConjunto) { fonte = "Grátis / Eventos"; corFonte = "#50c878"; }
+      else if (ehGratisConjunto) { fonte = "Grátis / Evento"; corFonte = "#50c878"; }
       else if (naLoja) { fonte = "Loja de Itens"; corFonte = "#ff7b00"; }
       else if (noClube) { fonte = "Clube Fortnite"; corFonte = "#ff4d4d"; }
       else if (ehPasseAPI) { fonte = "Passe de Batalha"; corFonte = "#b864ff"; }
@@ -1855,40 +1941,51 @@
 
     document.querySelectorAll('.tab[data-tab]').forEach(tab => {
       tab.addEventListener('click', async () => {
+        // Remove a cor amarela de todas as abas e coloca na que foi clicada
         document.querySelectorAll('.tab[data-tab]').forEach(t => t.classList.remove('active'));
         tab.classList.add('active');
         currentTab = tab.dataset.tab;
 
+        // Puxa todos os containers do HTML
         const perfilContainer = document.getElementById('perfilContainer');
         const mapContainer = document.getElementById('mapContainer');
+        const newsContainer = document.getElementById('newsContainer');
         const controlsPrincipais = document.getElementById('controlsPrincipais');
         const grid = document.getElementById('grid');
         const sentinela = document.getElementById('sentinela');
 
-        // Esconde todos os containers primeiro
-        perfilContainer.style.display = 'none';
-        mapContainer.style.display = 'none';
-        controlsPrincipais.style.display = 'none';
-        grid.style.display = 'none';
-        sentinela.style.display = 'none';
+        // 1. ESCONDE TUDO PRIMEIRO (Isso evita que uma aba fique por cima da outra)
+        if (perfilContainer) perfilContainer.style.display = 'none';
+        if (mapContainer) mapContainer.style.display = 'none';
+        if (newsContainer) newsContainer.style.display = 'none';
+        if (controlsPrincipais) controlsPrincipais.style.display = 'none';
+        if (grid) grid.style.display = 'none';
+        if (sentinela) sentinela.style.display = 'none';
 
+        // 2. MOSTRA APENAS A ABA QUE FOI CLICADA
         if (currentTab === 'perfil') {
-          perfilContainer.style.display = 'block';
-          return;
+          if (perfilContainer) perfilContainer.style.display = 'block';
+          return; // Para a execução aqui
         }
 
         if (currentTab === 'map') {
-          mapContainer.style.display = 'block';
-          carregarMapa(); // Dispara o fetch do mapa
+          if (mapContainer) mapContainer.style.display = 'block';
+          carregarMapa(); 
           return;
         }
 
-        // Se for "all", "my" ou "shop", mostra os botões e a grade
-        controlsPrincipais.style.display = 'flex';
-        grid.style.display = 'grid';
+        if (currentTab === 'news') {
+          newsContainer.style.display = 'block';
+          carregarNoticias(); // Dispara o fetch da API
+          return;
+        }
+
+        // 3. SE FOR AS ABAS DE ITENS, MOSTRA A GRADE E A BARRA DE PESQUISA
+        if (controlsPrincipais) controlsPrincipais.style.display = 'flex';
+        if (grid) grid.style.display = 'grid';
 
         if (currentTab === 'shop') {
-          mostrarItens(); // mostra "Carregando..." imediatamente
+          mostrarItens(); 
           await carregarLojaHoje();
         }
         mostrarItens();
@@ -1925,6 +2022,48 @@
       } catch (error) {
         console.error("Erro ao carregar mapa:", error);
         container.innerHTML = '<p style="color:#ff7b7b;">Não foi possível conectar à API do mapa.</p>';
+      }
+    }
+
+    // === SISTEMA DE NOTÍCIAS ===
+    let noticiasCarregadas = false;
+    async function carregarNoticias() {
+      if (noticiasCarregadas) return;
+      
+      const grid = document.getElementById('newsGrid');
+      grid.innerHTML = '<p style="color:#ccc; text-align:center; width:100%;">Buscando notícias no servidor...</p>';
+      
+      try {
+        const res = await fetch('https://fortnite-api.com/v2/news/br?language=pt-BR');
+        const json = await res.json();
+        
+        if (json.data && json.data.motds) {
+          const noticias = json.data.motds;
+          
+          if (noticias.length === 0) {
+            grid.innerHTML = '<p style="color:#888; text-align:center; width:100%;">Nenhuma novidade no momento.</p>';
+            return;
+          }
+
+          // Desenha os cards de notícias com a mesma estética do resto do site
+          grid.innerHTML = noticias.map(news => `
+            <div style="background:rgba(30, 30, 40, 0.863); border:2px solid #555; border-radius:12px; overflow:hidden; transition:transform 0.3s; display:flex; flex-direction:column; box-shadow: 0 4px 15px rgba(0,0,0,0.5);" onmouseover="this.style.transform='scale(1.02)'; this.style.borderColor='#ffcc00'" onmouseout="this.style.transform='scale(1)'; this.style.borderColor='#555'">
+              <img src="${news.image}" alt="${news.title}" style="width:100%; height:200px; object-fit:cover; border-bottom:2px solid #333;">
+              <div style="padding:18px; display:flex; flex-direction:column; flex:1;">
+                <span style="color:#4dc5ff; font-size:0.85rem; text-transform:uppercase; font-weight:bold; margin-bottom:8px;">${news.tabTitle || 'Atualização'}</span>
+                <h3 style="margin:0 0 12px 0; color:white; text-transform:uppercase; font-size:1.3rem; font-weight:900; line-height: 1.1; text-shadow: 0 0 8px rgba(0,0,0,0.8);">${news.title}</h3>
+                <p style="color:#ccc; font-size:0.95rem; margin:0; line-height:1.5; flex:1;">${news.body}</p>
+              </div>
+            </div>
+          `).join('');
+          
+          noticiasCarregadas = true;
+        } else {
+          grid.innerHTML = '<p style="color:#ff7b7b; text-align:center; width:100%;">As notícias estão indisponíveis no momento.</p>';
+        }
+      } catch (error) {
+        console.error("Erro ao carregar notícias:", error);
+        grid.innerHTML = '<p style="color:#ff7b7b; text-align:center; width:100%;">Erro de conexão ao buscar as novidades.</p>';
       }
     }
 
