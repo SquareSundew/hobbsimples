@@ -1,2152 +1,554 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Fortnite Locker</title>
-  <style>
-    @font-face {
-      font-family: 'Burbank Big Condensed Black';
-      src: url('BurbankBigCondensed-Black.ttf') format('truetype');
-    }
-    body {
-      margin: 0;
-      font-family: 'Arial', sans-serif;
-      background: #111;
-      color: white;
-      min-height: 100vh;
-      transition: background 0.5s ease;
-    }
-    .container { max-width: 1300px; margin: 0 auto; padding: 20px; }
-    h1 { font-size: 3rem; margin: 20px 0; text-shadow: 0 0 10px #ffcc00; text-align: center; }
-    .tabs { 
-      display: flex; 
-      justify-content: center; 
-      gap: 35px; 
-      margin: 0; 
-      padding: 0 20px;
-      background: rgba(0, 0, 0, 0.527); /* <-- Mesma cor e transparência da pesquisa! */
-      backdrop-filter: blur(1px); /* Efeito de vidro desfocado por trás */
-      border-bottom: 1px solid rgba(255, 255, 255, 0.137); /* Borda mais suave para combinar */
-      position: sticky; 
-      top: 0; 
-      z-index: 1000; 
-      height: 60px; 
-      width: 100%; 
-      box-sizing: border-box; 
-    }
-    
-    .tab { 
-      padding: 0; 
-      background: transparent; 
-      border: none; 
-      border-radius: 0; 
-      color: #fff; 
-      font-weight: 900; 
-      font-size: 1.05rem; 
-      text-transform: uppercase; 
-      cursor: pointer; 
-      transition: color 0.2s; 
-      display: flex; 
-      align-items: center; 
-      border-bottom: 4px solid transparent; /* Linha invisível por padrão */
-      margin-bottom: -1px; /* Faz a linha amarela encaixar em cima da borda cinza */
-    }
-    
-    .tab:hover { 
-      background: transparent; 
-      color: #ccc; 
-    }
-    
-    .tab.active { 
-      background: transparent; 
-      color: #fff; 
-      border-bottom: 4px solid #fce83a; /* Amarelo clássico do jogo na aba ativa */
-    }
-    .controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin: 25px 0; }
-    .search { padding: 14px 20px; background: rgba(0, 0, 0, 0.527); border: 2px solid rgba(255,255,255,0.3); border-radius: 50px; color: white; font-size: 1.1rem; }
-    .search-item { width: 320px; }
-    .search-conjunto { width: 250px; }
-    
-    select, button { padding: 12px 18px; background: rgba(0,0,0,0.7); border: 2px solid rgba(255,255,255,0.3); border-radius: 50px; color: white; font-size: 1rem; cursor: pointer; transition: 0.2s; }
-    button:hover { background: rgba(255, 204, 0, 0.2); border-color: #ffcc00; }
-    
-    .btn-add-conjunto { border-color: #ffcc00; color: #ffcc00; font-weight: bold; }
-    .btn-add-conjunto:hover { background: #ffcc00; color: black; }
-    
-    .btn-config { border-color: #4dc4ff00; color: #ffffff; font-weight: bold; }
-    .btn-config:hover { background: #4dc4ff00; color: rgb(255, 255, 255); }
-
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; padding: 20px; }
-    .secao-loja { margin: 30px 0; }
-    .secao-loja-titulo {
-      font-family: 'Burbank Big Condensed Black', 'Arial', sans-serif;
-      font-size: 1.6rem;
-      font-weight: 900;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      padding: 14px 20px;
-      margin: 0 20px 12px;
-      background: linear-gradient(90deg, rgba(0,0,0,0.75), rgba(0,0,0,0.15));
-      border-left: 5px solid #ffcc00;
-      border-radius: 6px;
-      text-shadow: 0 0 10px rgba(0,0,0,0.6);
-    }
-    .card { background: rgba(30, 30, 40, 0.863); border-radius: 12px; overflow: hidden; transition: all 0.3s; border: 2px solid #555; position: relative; display: flex; flex-direction: column; padding-bottom: 10px; cursor: pointer; }
-    .card:hover { transform: scale(1.05); box-shadow: 0 0 20px #ffcc0000; border-color: #ffcc0000; z-index: 10; }
-    .card img { width: 100%; height: 180px; object-fit: contain; background: #1111119d; }
-    .card p { margin: 10px 10px 5px; font-weight: bold; font-size: 1.1rem; }
-    .info { font-size: 0.85rem; color: #ccc; margin: 3px 10px; }
-    
-    .info-conjunto { color: #ffcc00; font-weight: bold; }
-    .info-tempo { color: #4dc5ff; } 
-    .info-preco { color: #4dc5ff; font-weight: bold; display: flex; align-items: center; gap: 4px; }
-
-    .add-btn { position: absolute; top: 10px; right: 10px; background: #ffcc00; color: black; border: none; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
-    .add-btn:hover { transform: scale(1.1); }
-
-    /* ESPAÇO INVISÍVEL NO FINAL DA PÁGINA PARA O SCROLL INFINITO */
-    #sentinela { width: 100%; height: 40px; margin-top: 20px; display: none; }
-
-    /* =========================================
-       ESTILOS DOS MODAIS (ITEM E CONFIG)
-       ========================================= */
-    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
-    
-    .modal-content { display: flex; width: 950px; max-width: 95%; background: #16161d; border-radius: 12px; overflow: hidden; position: relative; box-shadow: 0 0 30px rgba(0,0,0,0.8); max-height: 90vh; border: 1px solid #333; }
-    .modal-left { flex: 1.2; background: radial-gradient(circle, #2b5b99 0%, #08285c 100%); display: flex; align-items: center; justify-content: center; padding: 20px; border-right: 2px solid #222; }
-    .modal-left.is-skin { align-items: flex-end; padding: 20px 20px 0; }
-    .modal-left img { max-width: 100%; max-height: 500px; width: auto; height: auto; object-fit: contain; filter: drop-shadow(0px 10px 15px rgba(0,0,0,0.6)); transition: all 0.3s ease; }
-    /* --- PARA TELAS DE CARREGAMENTO --- */
-    .modal-content.is-loading-modal {
-      flex-direction: column;
-      width: 750px; 
-    }
-    .modal-content.is-loading-modal .modal-left {
-      flex: none;
-      width: 100%;
-      padding: 0;
-      background: #0a0a0f; /* Fundo mais escuro para destacar a arte */
-      border-right: none;
-      border-bottom: 2px solid #222;
-    }
-    .modal-content.is-loading-modal .modal-left img {
-      width: 100%;
-      height: auto;
-      max-height: 450px;
-      object-fit: contain; 
-      display: block;
-    }
-    .modal-content.is-loading-modal .modal-close {
-      background: rgba(0, 0, 0, 0.7);
-      border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-    }
-    /* ---------------------------------------------- */
-    .modal-right { flex: 1; padding: 30px; overflow-y: auto; display: flex; flex-direction: column; background: #1e1e28; }
-    .modal-close { position: absolute; top: 15px; right: 20px; background: transparent; border: none; color: #aaa; font-size: 28px; cursor: pointer; transition: 0.2s; z-index: 10; }
-    .modal-close:hover { color: #ffcc00; transform: scale(1.1); }
-    #modalTitle { 
-  font-family: 'Burbank Big Condensed Black', 'Arial', sans-serif; /* <-- Adicionei isso aqui */
-  margin: 0 0 10px 0; 
-  font-size: 2rem; 
-  text-transform: uppercase; 
-  font-style: normal; 
-  font-weight: normal; 
-  line-height: 1.1; 
-  text-align: center; 
-}
-    .modal-subtitle { display: flex; gap: 8px; justify-content: center; margin-bottom: 10px; align-items: center; font-size: 0.85rem; font-weight: bold; }
-    .badge { padding: 4px 8px; border-radius: 6px; text-transform: uppercase; }
-    .type-badge { background: transparent; color: white; border: 1px solid #777; }
-    .modal-set { color: #fff; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 5px; font-size: 0.9rem; margin-bottom: 25px; }
-    .modal-variants { margin-top: 10px; }
-    .variant-channel { margin-bottom: 20px; }
-    .variant-channel-name { font-size: 0.8rem; color: #aaa; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; margin-bottom: 12px; font-weight: bold; text-align: center; justify-content: center;}
-    .variant-channel-name::before, .variant-channel-name::after { content: ""; flex: 1; height: 1px; background: #444; margin: 0 10px; }
-    .variant-options { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
-    .variant-icon { width: 55px; height: 55px; border-radius: 8px; border: 2px solid #555; cursor: pointer; object-fit: cover; transition: 0.2s; background: #222; }
-    .variant-icon:hover { border-color: #ffcc00; transform: scale(1.1); }
-    .variant-icon.active { border-color: #ffcc00; box-shadow: 0 0 12px rgba(255, 204, 0, 0.5); }
-    .modal-desc-box { text-align: center; margin: 25px 0; }
-    .modal-desc-text { font-style: italic; color: #ccc; font-size: 1.05rem; }
-    .modal-desc-sub { color: #777; font-size: 0.85rem; border-bottom: 1px dashed #555; padding-bottom: 2px; display: inline-block; margin-top: 8px; }
-    .modal-info-box { background: rgba(0,0,0,0.3); padding: 18px; border-radius: 12px; font-size: 0.9rem; border-top: 2px solid #333; margin-top: auto; }
-    .modal-info-box p { margin: 10px 0; display: flex; justify-content: space-between; align-items: center; color: #aaa; }
-    .modal-info-box strong { color: white; text-align: right; }
-    .pacote-item-thumb { width: 70px; cursor: pointer; text-align: center; }
-    .pacote-item-thumb img { width: 70px; height: 70px; object-fit: contain; background: #222; border-radius: 8px; border: 2px solid #555; transition: 0.2s; }
-    .pacote-item-thumb:hover img { border-color: #ffcc00; transform: scale(1.05); }
-    .pacote-item-thumb span { display: block; font-size: 0.72rem; color: #ccc; margin-top: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-    /* MODAL DE CONFIGURAÇÕES */
-    .config-content { width: 1000px; max-width: 95%; height: 85vh; background: #1e1e28; border-radius: 12px; position: relative; border: 1px solid #333; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 0 30px rgba(0,0,0,0.8); }
-    .config-header { padding: 25px; background: #16161d; border-bottom: 2px solid #333; text-align: center; }
-    .config-header h2 { margin: 0; color: #4dc5ff; text-transform: uppercase; font-style: italic; font-weight: 900; }
-    .config-body { padding: 20px; overflow-y: auto; display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; align-content: flex-start;}
-    .bg-option { width: 220px; height: 124px; border-radius: 8px; border: 2px solid #555; cursor: pointer; object-fit: cover; transition: 0.2s; background: #111; }
-    .bg-option:hover { border-color: #4dc5ff; transform: scale(1.05); }
-    .bg-option.active { border-color: #4dc5ff; box-shadow: 0 0 15px rgba(77, 197, 255, 0.6); }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Armário Fortnite</title>
+<style>
+:root{--bg:#0b1020;--p:#141b34;--l:#232c4d;--tx:#e8ecff;--m:#8b95c0;--ac:#4cc3ff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:14px system-ui,Segoe UI,sans-serif}
+button,select,input{font:inherit;color:var(--tx)}
+header{position:sticky;top:0;z-index:5;background:#0b1020ee;backdrop-filter:blur(8px);display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:12px 18px;border-bottom:1px solid var(--l)}
+h1{font-size:20px;margin:0;display:flex;align-items:center}h1 b{color:var(--ac)}
+.logo{height:38px;width:auto;max-width:200px;object-fit:contain;display:block}
+.sw{position:relative;flex:1;min-width:220px;max-width:560px}
+#q{width:100%;padding:10px 14px;border-radius:10px;border:1px solid var(--l);background:var(--p);outline:none}
+#q:focus{border-color:var(--ac)}
+#sg{position:absolute;left:0;right:0;top:44px;background:var(--p);border:1px solid var(--l);border-radius:10px;overflow:hidden;display:none;box-shadow:0 12px 30px #0008}
+#sg div{padding:8px 12px;cursor:pointer;display:flex;gap:10px;align-items:center}#sg div:hover{background:var(--l)}
+#sg img{width:30px;height:30px;border-radius:6px}#sg small{color:var(--m);margin-left:auto}
+.seg{display:flex;border:1px solid var(--l);border-radius:10px;overflow:hidden}
+.seg button,#cats button,#rars button{background:var(--p);border:0;padding:8px 12px;cursor:pointer}
+.seg button.on,#cats button.on{background:var(--ac);color:#04121c;font-weight:600}
+#cats{display:flex;gap:6px;flex-wrap:wrap;padding:12px 18px 0}
+#cats button{border-radius:20px;border:1px solid var(--l)}
+.bar{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;padding:12px 18px}
+#rars{display:flex;gap:6px;flex-wrap:wrap}
+#rars button{border-radius:8px;border:1px solid var(--l);border-left:4px solid var(--c,var(--l))}
+#rars button.on{background:var(--c,var(--ac));color:#000;font-weight:600}
+#rars small,#cats small{opacity:.7;margin-left:4px}
+.sel{display:flex;gap:8px;flex-wrap:wrap}
+select{background:var(--p);border:1px solid var(--l);border-radius:8px;padding:8px}
+#info{padding:0 18px 8px;color:var(--m)}
+#info button{background:var(--l);border:0;border-radius:12px;padding:3px 10px;cursor:pointer;margin-left:6px}
+#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;padding:0 18px 20px}
+.c{position:relative;border-radius:10px;overflow:hidden;cursor:pointer;background:radial-gradient(circle at 50% 35%,var(--c),#0b1020 85%);border:2px solid var(--c);transition:transform .15s}
+.c:hover{transform:translateY(-4px) scale(1.02)}
+.c img{width:100%;aspect-ratio:1;object-fit:cover;display:block}
+.c .n{padding:8px;background:#000a;font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.c .t{position:absolute;top:6px;left:6px;background:#000b;border-radius:6px;padding:2px 6px;font-size:11px}
+.c .f{position:absolute;top:6px;right:6px;font-size:14px;text-shadow:0 0 4px #000}
+#more{height:40px}
+#md,#cm,#mp{position:fixed;inset:0;background:#000c;display:flex;align-items:center;justify-content:center;z-index:10;padding:14px}
+#md[hidden],#cm[hidden],#mp[hidden]{display:none}
+.box{background:var(--p);border:1px solid var(--l);border-radius:16px;max-width:760px;width:100%;max-height:92vh;overflow:auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.box .im{background:radial-gradient(circle,var(--c),#0b1020);display:flex;align-items:center}
+.box .im img{width:100%;display:block}
+.box.wide{grid-template-columns:1fr;max-width:960px}
+#bgl{position:fixed;inset:0;z-index:-1;background:center/cover no-repeat;filter:blur(var(--blur,0px));transform:scale(1.08)}
+#bgl::after{content:"";position:absolute;inset:0;background:rgba(5,8,18,var(--dim,.65))}
+#cfg,#mapb{background:var(--p);border:1px solid var(--l);border-radius:10px;padding:8px 12px;cursor:pointer}
+#mpb{max-width:860px}
+.mapimg{display:block;width:100%;border-radius:10px;border:1px solid var(--l)}
+.cbox{background:var(--p);border:1px solid var(--l);border-radius:16px;max-width:680px;width:100%;max-height:92vh;overflow:auto;padding:20px}
+.pg{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;max-height:260px;overflow:auto;margin-bottom:8px}
+.pi{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;cursor:pointer;border:2px solid transparent}
+.pi.sel{border-color:var(--ac)}
+header{background:rgba(11,16,32,var(--ga,.93));-webkit-backdrop-filter:blur(var(--gb,8px));backdrop-filter:blur(var(--gb,8px))}
+select.hid,#cats{display:none}
+.dd{position:relative}
+.dd>button{display:flex;gap:10px;align-items:center;justify-content:space-between;min-width:150px;padding:8px 12px;border-radius:8px;border:1px solid var(--l);cursor:pointer;background:rgba(20,27,52,var(--ga,1));-webkit-backdrop-filter:blur(var(--gb,0px));backdrop-filter:blur(var(--gb,0px))}
+.dd>button::after{content:"▾";opacity:.7;transition:transform .15s}
+.dd.open>button{border-color:var(--ac)}
+.dd.open>button::after{transform:rotate(180deg)}
+.dl{position:absolute;right:0;top:calc(100% + 6px);min-width:100%;width:max-content;max-width:min(320px,88vw);max-height:340px;overflow:auto;background:rgba(14,20,40,.95);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border:1px solid var(--l);border-radius:12px;padding:6px;box-shadow:0 18px 44px #000b;z-index:20;display:none}
+.dd.open .dl{display:block}
+.dl div{padding:8px 12px;border-radius:8px;cursor:pointer;white-space:nowrap}
+.dl div:hover{background:var(--l)}
+.dl div.cur{background:var(--ac);color:#04121c;font-weight:600}
+.dl div.dh{margin-top:6px;padding:12px 12px 4px;border-top:1px solid var(--l);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--m);cursor:default}
+.dl div.dh:hover{background:none}
+#shop{display:none;padding:0 18px 24px}
+body.shop #shop{display:block}
+body.shop #grid,body.shop #more,body.shop .bar,body.shop #cats{display:none}
+#shop h3{margin:18px 0 10px}
+.sg{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.c .pr{background:#000a;padding:0 8px 8px;font-weight:600;font-size:13px}
+.sty{display:flex;flex-wrap:wrap;gap:6px;max-height:160px;overflow:auto;margin:4px 0 10px}
+.sq{width:52px;height:52px;padding:0;border:2px solid var(--l);border-radius:8px;overflow:hidden;background:var(--bg);cursor:pointer}
+.sq.on{border-color:var(--ac)}
+.sq.r{width:50px;height:62px}
+.box .im.rn{align-items:flex-end}
+.sq.r img{object-fit:contain}
+.sq img{width:100%;height:100%;object-fit:cover;display:block}
+.vb,.c img.vb{height:14px;width:auto;aspect-ratio:auto;object-fit:contain;display:inline-block;vertical-align:-2px;margin-right:3px}
+:root{color-scheme:dark}
+select option,select optgroup{background:#141b34;color:#e8ecff}
+select option:checked{background:#2a6df4;color:#fff}
+#q,.seg button,#cats button:not(.on),#rars button:not(.on),select,#cfg,#mapb{background:rgba(20,27,52,var(--ga,1));-webkit-backdrop-filter:blur(var(--gb,0px));backdrop-filter:blur(var(--gb,0px))}
+.box .tx{padding:20px}.box h2{margin:0 0 6px}
+.badge{display:inline-block;padding:2px 10px;border-radius:12px;color:#000;font-weight:700;font-size:12px;background:var(--c)}
+.row{margin:8px 0;color:var(--m)}.row b{color:var(--tx);font-weight:500}
+.act{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.act button{background:var(--l);border:0;border-radius:8px;padding:8px 12px;cursor:pointer}
+.act button.on{background:var(--ac);color:#04121c}
+.lk{background:0;border:0;color:var(--ac);cursor:pointer;padding:0;text-decoration:underline}
+@media(max-width:600px){.box{grid-template-columns:1fr}}
+</style>
 </head>
 <body>
-  
-  <div class="tabs">
-      <img src="https://cms-assets.unrealengine.com/AVzjeqAbLRKi3W5jq0CAvz/ovBnvmuJSxO5xtgXZcef" alt="Fortnite Logo" style="height: 32px; width: auto; position: absolute; left: 30px; top: 50%; transform: translateY(-50%);" />
-      <div class="tab active" data-tab="all">Todos os Itens</div>
-      <div class="tab" data-tab="map">Mapa da Ilha</div>
-      <div class="tab" data-tab="my">Meu Vestiário (<span id="count">0</span>)</div>
-      <div class="tab" data-tab="shop">Loja de Hoje</div>
-      <div class="tab" data-tab="news">Notícias</div>
-      <div class="tab" data-tab="perfil" style="display: flex; align-items: center; gap: 10px; padding: 8px 24px;">
-        <img id="tabPerfilAvatar" src="" style="width: 32px; height: 30px; border-radius: 50%; object-fit: cover; background: #222;">
-        <span id="tabPerfilNome" style="font-weight: inherit;">Perfil</span>
-      </div>
-    </div>
-  <div class="container">
+<div id="bgl"></div>
+<header>
+  <h1><img class="logo" src="https://cms-assets.unrealengine.com/AVzjeqAbLRKi3W5jq0CAvz/ovBnvmuJSxO5xtgXZcef" alt="Fortnite" onerror="this.replaceWith('Armário Fortnite')"></h1>
+  <div class="sw"><input id="q" type="search" placeholder="Buscar skin, picareta, set, capítulo…  ( / )" autocomplete="off"><div id="sg"></div></div>
+  <div class="seg" id="col"><button data-v="all" class="on">Todos</button><button data-v="own">Vestiário <small id="no"></small></button><button data-v="fav">Favoritos</button><button data-v="shop">Loja</button></div>
+  <button id="mapb" title="Mapa do jogo">Mapa</button>
+  <button id="cfg" title="Configurações">⚙️</button>
+</header>
+<nav id="cats"></nav>
+<section class="bar"><div id="rars"></div>
+  <div class="sel"><select id="type"></select><select id="chap"></select>
+    <select id="sort"><option value="rel">Relevância / novos</option><option value="name">Nome (A–Z)</option><option value="new">Mais recentes</option><option value="rar">Raridade ↓</option></select></div>
+</section>
+<div id="info">Carregando cosméticos…</div>
+<main id="grid"></main><div id="more"></div>
+<div id="shop"></div>
+<div id="md" hidden><div class="box" id="box"></div></div>
+<div id="cm" hidden><div class="cbox" id="cb"></div></div>
+<div id="mp" hidden><div class="cbox" id="mpb"></div></div>
 
-    <!-- ABA MEU PERFIL: estatísticas do jogador via /v2/stats/br/v2 -->
-    <div id="perfilContainer" style="display:none; max-width:900px; margin:20px auto; padding:0 20px;">
-      <!-- === CABEÇALHO DO PERFIL (FOTO E NOME) === -->
-      <div style="display:flex; align-items:center; gap:20px; margin-bottom:25px; background:rgba(0,0,0,0.4); padding:20px; border-radius:14px; border:2px solid rgba(255,255,255,0.15);">
-        <div style="position:relative; width:100px; height:100px; cursor:pointer;" onclick="abrirModalAvatar()">
-          <img id="perfilAvatarImg" src="https://fortnite-api.com/images/cosmetics/br/cid_028_athena_commando_f/icon.png" style="width:100%; height:100%; object-fit:cover; border-radius:50%; border:3px solid #ffcc00; background:#22222200; transition:0.2s;">
-          <div style="position:absolute; bottom:0; right:0; background:#ffcc00; color:black; border-radius:50%; width:28px; height:28px; display:flex; justify-content:center; align-items:center; font-weight:bold; font-size:16px;" title="Trocar Avatar">✎</div>
-        </div>
-        <div style="flex:1;">
-          <input type="text" id="perfilNomeExibicao" placeholder="Digite seu Nickname..." oninput="salvarNomeExibicao()"
-                 style="background:transparent; border:none; color:white; font-size:2.2rem; font-weight:900; font-style:italic; text-transform:uppercase; outline:none; width:100%; text-shadow: 0 0 10px rgba(0,0,0,0.8); border-bottom: 2px dashed transparent; transition:0.2s; padding:0;"
-                 onfocus="this.style.borderBottom='2px dashed #555'" onblur="this.style.borderBottom='2px dashed transparent'">
-          <div style="color:#aaa; font-size:0.9rem; margin-top:4px;"></div>
-        </div>
-      </div>
-  
-      <!-- A parte da API Key continua aqui embaixo... -->
-      <div style="background:rgba(0,0,0,0.5); border:2px solid rgba(255,255,255,0.15); border-radius:14px; padding:24px; margin-bottom:20px;">
-        <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
-          <input type="text" id="perfilApiKey" placeholder="Sua API Key (fortnite-api.com/profile)"
-                 style="flex:1; min-width:220px; padding:12px 16px; background:rgba(0,0,0,0.5); border:2px solid rgba(255,255,255,0.3); border-radius:50px; color:white;">
-          <input type="text" id="perfilNome" placeholder="Nome Epic Games (ex: Ninja)"
-                 style="flex:1; min-width:180px; padding:12px 16px; background:rgba(0,0,0,0.5); border:2px solid rgba(255,255,255,0.3); border-radius:50px; color:white;">
-          <button class="btn-add-conjunto" onclick="buscarPerfil()">Buscar Estatísticas</button>
-        </div>
-        <p style="color:#888; font-size:0.82rem; margin:6px 2px 0;">
-          Esse endpoint da API exige uma chave própria (grátis) — gere a sua fazendo login em
-          <a href="https://dash.fortnite-api.com/" target="_blank" style="color:#4dc5ff;">dash.fortnite-api.com</a> com o Discord.
-          A chave e o nome ficam salvos só neste navegador.
-        </p>
-      </div>
-      <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:20px;">
-        <button class="btn-config" onclick="abrirConfiguracoes()">Wallpaper</button>
-        <button class="btn-config" onclick="abrirRendersManuais()">Renders Manuais</button>
-      </div>
-      <div id="perfilResultado"></div>
-    </div>
+<script>
+const API='https://fortnite-api.com/v2/cosmetics?language=pt-BR';
+/* RENDERS 3D: coloque as imagens numa pasta "renders" ao lado deste arquivo, nomeadas com o ID do item
+   (ex.: renders/CID_028_Athena_Commando_F.png). Se o arquivo não existir, usa a imagem da API.
+   Para usar um link externo, troque por: id=>'https://seu-link/'+id+'.png'. Use null para desativar. */
+const RENDER_URL=id=>'renders/'+id+'.png';
+/* Arte completa das telas de carregamento (aparece no botão "Ver arte completa" da janela). */
+/* Tipos que NÃO aparecem no menu "Todos os tipos" (acrescente ou remova nomes à vontade). */
+const HIDE_TYPES=new Set(['Aura','Beans','Boost','Car Body','Character','Chassi','Construção','Decal','Fazer Gesto','Gesto Embutido','Gesto IA do Iron Man','LEGO','MASCOTE','Meio de transporte favorito de Grievous.','Música','Pacote de Música','Pacotão de Decoração','Personagem','Rastro de Fumaça','Roda','Sem Acessório para as Costas','Serviço','Spray de Teste','Trail','Turbo','Visual','Wheels','null'].map(s=>s.toLowerCase()));
+const SPRAY_URL=id=>'https://fortnite-api.com/images/cosmetics/br/'+id.toLowerCase()+'/decal.png';
+const LS_BG=id=>'https://fortnite-api.com/images/cosmetics/br/'+id.toLowerCase()+'/background.png';
+const CAT={br:'Battle Royale',instruments:'Instrumentos',cars:'Carros',tracks:'Faixas',lego:'LEGO',legoKits:'Kits LEGO',beans:'Beans'};
+const RAR={common:['Comum','#b1b1b1'],uncommon:['Incomum','#60aa3a'],rare:['Raro','#49acf2'],epic:['Épico','#b15be2'],legendary:['Lendário','#e98b3a'],mythic:['Mítico','#f2c744'],transcendent:['Transcendente','#ff5c8a']};
+const RANK=Object.keys(RAR);
+const SER={marvelseries:'#ed1d24',dcseries:'#548bd1',creatorcollabseries:'#2de0d8',shadowseries:'#8a8a8a',slurpseries:'#1fc7d3',frozenseries:'#9bd6f5',lavaseries:'#e8602c',platformseries:'#7a52d6',columbusseries:'#f0c33c',cubeseries:'#a62be0'};
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+const ld=k=>{try{return new Set(JSON.parse(localStorage.getItem(k)||'[]'))}catch{return new Set()}};
+const sv=(k,s)=>{try{localStorage.setItem(k,JSON.stringify([...s]))}catch{}};
+let ITEMS=[],V=[],T=[],shown=0,cur=-1;const BY=new Map();
+const own=ld('fn_own'),fav=ld('fn_fav');
+const S={q:'',cat:'br',rar:'all',type:'all',chap:'all',set:'',sort:'rel',col:'all'};
 
-    <!-- ABA MAPA -->
-    <div id="mapContainer" style="display:none; max-width:1000px; margin:20px auto; padding:0 20px; text-align:center;">
-      <h2 style="font-family: 'Burbank Big Condensed Black', 'Arial', sans-serif; color:#ffcc00; margin-bottom: 25px; text-align: center; font-size: 3rem; text-shadow: 0 0 10px rgba(0,0,0,0.8);">Capítulo 7 Temporada 3</h2>
-      <div id="mapResult">
-        <p style="color:#ccc;">Carregando mapa...</p>
-      </div>
-    </div>
-    <!-- FIM DO CONTAINER DE MAPA -->
-    
-    <!-- ABA NOTÍCIAS -->
-    <div id="newsContainer" style="display:none; max-width:1200px; margin:20px auto; padding:0 20px;">
-      <h2 style="font-family: 'Burbank Big Condensed Black', 'Arial', sans-serif; color:#ffcc00; margin-bottom: 25px; text-align: center; font-size: 3rem; text-shadow: 0 0 10px rgba(0,0,0,0.8);">Novidades no Battle Royale</h2>
-      <div id="newsGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
-        <p style="color:#ccc; text-align:center; width:100%;">Carregando notícias...</p>
-      </div>
-    </div>
-    <!-- FIM DO CONTAINER DE NOTÍCIAS -->
+function mk(o,cat){
+  const img=o.images?.icon||o.images?.smallIcon||o.images?.large||o.images?.small||o.albumArt||'';
+  if(!img||!o.id)return null;
+  const r=(o.rarity?.value||'common').toLowerCase();
+  const sk=(o.series?.backendValue||'').toLowerCase();
+  const it={id:o.id,cat,name:o.name||o.title||o.id,desc:o.description||(o.artist?'Artista: '+o.artist:''),
+    type:o.type?.displayValue||CAT[cat],r:RAR[r]?r:'common',rn:o.rarity?.displayValue||RAR[r]?.[0]||'Comum',
+    set:o.set?.value||'',series:o.series?.value||'',intro:o.introduction?.text||'',
+    chap:o.introduction?.chapter?'Capítulo '+o.introduction.chapter:'',added:o.added||'',
+    img,big:/^LoadingScreen/i.test(o.id)?img:(o.images?.featured||img),r3d:RENDER_URL&&!/^LoadingScreen/i.test(o.id)?RENDER_URL(o.id):'',
+    bg:/^LoadingScreen/i.test(o.id)?LS_BG(o.id):(/^Spray_/i.test(o.id)||o.type?.value==='spray')?SPRAY_URL(o.id):'',
+    wide:/^LoadingScreen/i.test(o.id),tv:o.type?.value||'',ch:o.introduction?.chapter||'',se:o.introduction?.season||'',
+    vars:vOf(o)};
+  it.col=SER[sk]||RAR[it.r][1];
+  it.nn=norm(it.name);
+  it.blob=norm([it.name,it.desc,it.type,it.rn,it.set,it.series,it.intro,it.chap,it.id].join(' '));
+  return it;
+}
 
-    <div class="controls" id="controlsPrincipais">
-      <input type="text" id="search" class="search search-item" placeholder="Pesquisar Item ou Conjunto..." onkeyup="aplicarFiltros()">
-      
-      <select id="rarityFilter" onchange="aplicarFiltros()">
-        <option value="">Todas as Raridades</option>
-        <option value="Comum">Comum</option>
-        <option value="Incomum">Incomum</option>
-        <option value="Raro">Raro</option>
-        <option value="Épico">Épico</option>
-        <option value="Lendário">Lendário</option>
-      </select>
-      
-      <select id="typeFilter" onchange="aplicarFiltros()">
-        <option value="">Todos os Tipos</option>
-        <option value="outfit">Skins</option>
-        <option value="backpack">Back Bling</option>
-        <option value="emote">Emotes</option>
-        <option value="pickaxe">Picaretas</option>
-        <option value="music">Música de Lobby</option>
-        <option value="track">Música de Festival</option>
-        <option value="loadingscreen">Tela de Carregamento</option>
-      </select>
-      
-      <!-- COMEÇO DO CÓDIGO -->
-      <select id="seasonFilter" onchange="aplicarFiltros()">
-        <option value="">Todas as Temporadas</option>
-      </select>
-      <!-- FIM DO CÓDIGO -->
-      
-      <input type="text" id="setFilter" class="search search-conjunto" list="setOptions" placeholder="Buscar Conjunto..." oninput="aplicarFiltros()">
-      <datalist id="setOptions"></datalist>
-      
-      <button class="btn-add-conjunto" onclick="adicionarTodoConjunto()">Adicionar Conjunto</button>
-      
-      <button onclick="resetFiltros()">Limpar Filtro</button>
-      <button onclick="exportarVestiario()">Exportar</button>
-      <label style="cursor:pointer; padding:12px 18px; background:rgba(0,0,0,0.7); border:2px solid rgba(255,255,255,0.3); border-radius:50px; transition: 0.2s;">Importar<input type="file" id="importFile" accept=".json" style="display:none;" onchange="importarVestiario(event)">
-      </label>
-    </div>
-
-
-    <div class="grid" id="grid"></div>
-    
-    <div id="sentinela"></div>
-  </div>
-
-  <!-- MODAL DE ITEM -->
-  <div id="modalOverlay" class="modal-overlay" onclick="fecharModal(event)">
-    <div class="modal-content" onclick="event.stopPropagation()">
-      <button class="modal-close" onclick="fecharModal(event)">&times;</button>
-      <div class="modal-left"><img id="modalMainImg" src="" alt="Render do Modelo"></div>
-      <div class="modal-right">
-        <h2 id="modalTitle">NOME DA SKIN</h2>
-        <div class="modal-subtitle"><span id="modalRarity" class="badge">RARIDADE</span><span id="modalType" class="badge type-badge">TIPO</span></div>
-        <div id="modalSet" class="modal-set"></div>
-        <div id="modalVariants" class="modal-variants"></div>
-        <div class="modal-desc-box"><div id="modalDesc" class="modal-desc-text"></div><div class="modal-desc-sub"></div></div>
-        <div id="modalPacoteWrap" style="display:none; margin-bottom:20px;">
-          <div class="variant-channel-name">Itens inclusos no pacote</div>
-          <div id="modalPacoteItens" style="display:flex; flex-wrap:wrap; gap:12px; justify-content:center;"></div>
-        </div>
-        <div class="modal-info-box">
-          <p><span>Fonte:</span> <strong id="modalSource"></strong></p>
-          <p><span>No Jogo desde:</span> <strong id="modalSeason"></strong></p>
-          <p><span>Data de lançamento:</span> <strong id="modalDate"></strong></p>
-          <p id="modalPrecoLinha" style="display:none;"><span id="modalPrecoLabel">Preço na loja:</span> <strong id="modalPreco"></strong></p>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL DE CONFIGURAÇÕES -->
-  <div id="configModalOverlay" class="modal-overlay" onclick="fecharConfiguracoes(event)">
-    <div class="config-content" onclick="event.stopPropagation()">
-      <button class="modal-close" onclick="fecharConfiguracoes(event)">&times;</button>
-      <div class="config-header">
-        <h2>Escolher Fundo de Tela</h2>
-        <p style="color:#aaa; font-size:1rem; margin-top:8px;">Selecione uma Tela de Carregamento oficial do jogo para personalizar o seu Vestiário.</p>
-        <input type="text" id="bgSearchInput" placeholder="Pesquisar tela de carregamento..." oninput="filtrarFundos()"
-               style="margin-top:14px; width:100%; max-width:400px; padding:12px 18px; background:rgba(0,0,0,0.5); border:2px solid rgba(255,255,255,0.3); border-radius:50px; color:white; font-size:1rem;">
-      </div>
-      <div class="config-body" id="bgOptionsGrid"></div>
-    </div>
-  </div>
-
-  <!-- MODAL DE RENDERS MANUAIS -->
-  <div id="renderManualModalOverlay" class="modal-overlay" onclick="fecharRendersManuais(event)">
-    <div class="config-content" style="width:700px; height:auto; max-height:85vh;" onclick="event.stopPropagation()">
-      <button class="modal-close" onclick="fecharRendersManuais(event)">&times;</button>
-      <div class="config-header">
-        <h2>Renders Manuais</h2>
-        <p style="color:#aaa; font-size:1rem; margin-top:8px;">Cole o ID do item (ex: <code>CID_028_Athena_Commando_F</code>) e uma URL de imagem por linha. Isso tem prioridade sobre qualquer outro render — fica salvo só neste navegador.</p>
-      </div>
-      <div style="padding: 20px; overflow-y: auto;">
-        <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:20px;">
-          <input type="text" id="renderManualId" placeholder="ID do item (ex: CID_028_Athena_Commando_F)"
-                 style="padding:12px; border-radius:8px; border:2px solid #555; background:#111; color:white; font-size:0.95rem;">
-          <textarea id="renderManualUrls" placeholder="Uma URL de imagem por linha" rows="4"
-                    style="padding:12px; border-radius:8px; border:2px solid #555; background:#111; color:white; font-size:0.9rem; font-family:inherit; resize:vertical;"></textarea>
-          <label style="display:flex; align-items:center; gap:8px; color:#ccc; font-size:0.9rem; cursor:pointer;">
-            <input type="checkbox" id="renderManualSubstituir" style="width:16px; height:16px; cursor:pointer;">
-            Substituir tudo que já estava salvo pra esse ID (em vez de adicionar como estilo novo)
-          </label>
-          <button class="btn-add-conjunto" onclick="salvarRenderManual()">Salvar Render Manual</button>
-          
-          <!-- === BOTÕES DE EXPORTAR/IMPORTAR RENDERS MANUAIS === -->
-          <div style="display: flex; gap: 10px; margin-top: 10px;">
-            <button style="flex: 1; padding: 12px; background: rgba(0,0,0,0.7); border: 2px solid #ffcc00; border-radius: 8px; color: #ffcc00; font-weight: bold; cursor: pointer; transition: 0.2s;" onmouseover="this.style.background='#ffcc00'; this.style.color='black';" onmouseout="this.style.background='rgba(0,0,0,0.7)'; this.style.color='#ffcc00';" onclick="exportarRendersManuais()">Exportar IDs e Imagens</button>
-            <label style="flex: 1; padding: 12px; background: rgba(0,0,0,0.7); border: 2px solid #50c878; border-radius: 8px; color: #50c878; font-weight: bold; cursor: pointer; text-align: center; transition: 0.2s;" onmouseover="this.style.background='#50c878'; this.style.color='black';" onmouseout="this.style.background='rgba(0,0,0,0.7)'; this.style.color='#50c878';">
-              Importar
-              <input type="file" accept=".json" style="display:none;" onchange="importarRendersManuais(event)">
-            </label>
-          </div>
-          <!-- =================================================== -->
-        </div>
-        
-        <!-- === CAMPO DE PESQUISA === -->
-        <input type="text" id="pesquisaRenderManual" placeholder="Pesquisar ID já salvo..." oninput="renderizarListaRendersManuais()"
-               style="padding:12px; border-radius:8px; border:2px solid #555; background:#111; color:white; font-size:0.95rem; margin-top:10px; margin-bottom:15px; width:100%; box-sizing:border-box;">
-        <!-- ========================= -->
-        
-        <div id="listaRendersManuais" style="display:flex; flex-direction:column; gap:12px;"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL DE ESCOLHA DE AVATAR -->
-  <div id="avatarModalOverlay" class="modal-overlay" onclick="fecharModalAvatar(event)">
-    <div class="config-content" style="width:700px; height:auto; max-height:85vh;" onclick="event.stopPropagation()">
-      <button class="modal-close" onclick="fecharModalAvatar(event)">&times;</button>
-      <div class="config-header">
-        <h2>Escolher Avatar</h2>
-        <p style="color:#aaa; font-size:1rem; margin-top:8px;">Pesquise e selecione o ícone de qualquer skin do jogo.</p>
-        <input type="text" placeholder="Pesquisar nome da skin..." oninput="renderizarListaAvatares(this.value)"
-               style="margin-top:14px; width:100%; max-width:400px; padding:12px 18px; background:rgba(0,0,0,0.5); border:2px solid rgba(255,255,255,0.3); border-radius:50px; color:white; font-size:1rem;">
-      </div>
-      <div class="config-body" id="avatarGrid" style="display:flex; flex-wrap:wrap; gap:12px; justify-content:center; padding:20px; overflow-y:auto; height: 400px;">
-        <!-- Preenchido via JS -->
-      </div>
-    </div>
-  </div>
-
-  <script>
-    const fundoPadrao = "https://cms-assets.unrealengine.com/cm6l5gfpm05kr07my04cqgy2x/output=format:webp/cmq14ix8w37jf07ocsezv33el";
-    let meuFundoAtual = localStorage.getItem('fundoVestiario') || fundoPadrao;
-
-    function aplicarFundoCSS(url) {
-        document.body.style.background = `linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.5)), url('${url}') center/cover no-repeat fixed`;
+/* cache dos cosméticos no navegador (IndexedDB): só a primeira visita baixa tudo */
+const IDB={
+  db:()=>new Promise((ok,no)=>{const r=indexedDB.open('fn_cache',1);r.onupgradeneeded=()=>r.result.createObjectStore('k');r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)}),
+  async get(k){try{const d=await this.db();return await new Promise(ok=>{const t=d.transaction('k').objectStore('k').get(k);t.onsuccess=()=>ok(t.result);t.onerror=()=>ok(null)})}catch{return null}},
+  async set(k,v){try{const d=await this.db();await new Promise(ok=>{const t=d.transaction('k','readwrite');t.objectStore('k').put(v,k);t.oncomplete=()=>ok();t.onerror=()=>ok();t.onabort=()=>ok()})}catch{}}
+};
+async function load(){
+  $('#info').textContent='Carregando cosméticos…';
+  try{
+    let d=null;const old=await IDB.get('cos');
+    if(old&&old.d&&Date.now()-old.t<432e5)d=old.d;
+    else{
+      if(!old)$('#info').textContent='Carregando cosméticos… (a primeira vez demora; depois fica guardado no navegador)';
+      try{d=(await(await fetch(API)).json()).data;if(d)IDB.set('cos',{t:Date.now(),d})}
+      catch(e){if(old&&old.d)d=old.d;else throw e}
     }
-    aplicarFundoCSS(meuFundoAtual);
-
-    const conjuntosLoja = [];
-    const conjuntosPasse = ["dragão carmesim", "estilo espacial", "espírito devorador", "inovação na ilha", "caça ao wolfe", "vazio desconhecido", "pato sortudo", "os novos sete"];
-    const conjuntosClube = ["lebre ligeira"];
-    const conjuntosGratis = []; 
-
-    const itensLoja = [];
-    const itensPasse = []; 
-    const itensClube = [];
-    const itensGratis = ["quadro de extração da slone", "quadro de extração do wolfe", "quadro de extração da lâmina do vazio", "moldura de ex-quá-dição do patuno"]; 
-
-    const manualRenders = {
-      "Character_FunkyFeather_Cap": [
-          "renders/capitulo7-temporada3/character_funkyfeather_cap.webp",
-          "renders/capitulo7-temporada3/character_funkyfeather_cap_1.webp",
-          "renders/capitulo7-temporada3/character_funkyfeather_cap_2.webp",
-          "renders/capitulo7-temporada3/character_funkyfeather_cap_3.webp",
-          "renders/capitulo7-temporada3/character_funkyfeather_cap_4.webp",
-          "renders/capitulo7-temporada3/character_funkyfeather_cap_5.webp",
-          "renders/capitulo7-temporada3/character_funkyfeather_cap_6.webp",
-      ],
-      "Character_PixieParts_Lava": [
-          "renders/capitulo7-temporada3/character_pixieparts_lava.webp",
-      ],
-      "Character_LemonWrath_Ochre": [
-          "renders/capitulo7-temporada3/character_lemonwrath_ochre_0.webp",
-          "renders/capitulo7-temporada3/character_lemonwrath_ochre_1.webp",
-          "renders/capitulo7-temporada3/character_lemonwrath_ochre_2.webp",
-          "renders/capitulo7-temporada3/character_lemonwrath_ochre_3.webp",
-          "renders/capitulo7-temporada3/character_lemonwrath_ochre_4.webp",
-          "renders/capitulo7-temporada3/character_lemonwrath_ochre_5.webp",
-      ],
-      "Character_LocalTalent_Daisy": [
-          "renders/capitulo7-temporada3/character_localtalent_daisy_0.webp",
-          "renders/capitulo7-temporada3/character_localtalent_daisy_1.webp",
-          "renders/capitulo7-temporada3/character_localtalent_daisy_2.webp",
-          "renders/capitulo7-temporada3/character_localtalent_daisy_3.webp",
-          "renders/capitulo7-temporada3/character_localtalent_daisy_4.webp",
-          "renders/capitulo7-temporada3/character_localtalent_daisy_5.webp",
-      ],
-      "Character_HydroDrift_Metal": [
-          "renders/capitulo7-temporada3/character_hydrodrift_metal_0.webp",
-          "renders/capitulo7-temporada3/character_hydrodrift_metal_1.webp",
-      ],
-      "Character_LivelySugar_Syrup": [
-          "renders/capitulo7-temporada3/character_livelysugar_syrup_0.webp",
-          "renders/capitulo7-temporada3/character_livelysugar_syrup_1.webp",
-          "renders/capitulo7-temporada3/character_livelysugar_syrup_2.webp",
-          "renders/capitulo7-temporada3/character_livelysugar_syrup_3.webp",
-          "renders/capitulo7-temporada3/character_livelysugar_syrup_4.webp",
-          "renders/capitulo7-temporada3/character_livelysugar_syrup_5.webp",
-      ],
-      "Character_CopperMoggy_Swan": [
-          "renders/capitulo7-temporada3/character_coppermoggy_swan_0.webp",
-          "renders/capitulo7-temporada3/character_coppermoggy_swan_1.webp",
-          "renders/capitulo7-temporada3/character_coppermoggy_swan_2.webp",
-          "renders/capitulo7-temporada3/character_coppermoggy_swan_3.webp",
-          "renders/capitulo7-temporada3/character_coppermoggy_swan_4.webp",
-          "renders/capitulo7-temporada3/character_coppermoggy_swan_5.webp",
-          "renders/capitulo7-temporada3/character_coppermoggy_swan_6.webp",
-      ],
-      "Character_AlpacaLean_Gel": [
-          "renders/capitulo7-temporada3/character_alpacalean_gel_0.webp",
-          "renders/capitulo7-temporada3/character_alpacalean_gel_1.webp",
-      ],
-      "Character_MasakoReign": [
-          "renders/capitulo7-temporada3/character_masakoreign_0.webp",
-          "renders/capitulo7-temporada3/character_masakoreign_1.webp",
-      ],
-      "Character_BerryFlight": [
-          "renders/capitulo7-temporada3/character_berryflight_0.webp",
-          "renders/capitulo7-temporada3/character_berryflight_1.webp",
-      ],
-      "Character_TallChore": [
-          "renders/capitulo7-temporada3/character_tallchore_0.webp",
-          "renders/capitulo7-temporada3/character_tallchore_1.webp",
-      ],
-    };
-
-    // === RENDERS MANUAIS (persistente, salvo no navegador via painel "Renders Manuais") ===
-    // id do item -> array de URLs de imagem. Tem prioridade sobre qualquer outro render.
-    const CHAVE_RENDERS_MANUAIS = 'rendersManuaisFortnite';
-
-    function carregarRendersManuaisSalvos() {
-      try {
-        return JSON.parse(localStorage.getItem(CHAVE_RENDERS_MANUAIS)) || {};
-      } catch (e) {
-        return {};
-      }
-    }
-
-    let rendersManuaisSalvos = carregarRendersManuaisSalvos();
-
-    function salvarRendersManuaisNoStorage() {
-      try {
-        localStorage.setItem(CHAVE_RENDERS_MANUAIS, JSON.stringify(rendersManuaisSalvos));
-      } catch (e) {
-        console.warn('Não foi possível salvar os renders manuais.', e);
-      }
-    }
-
-    // Junta o que está fixo no código (manualRenders) com o que foi salvo pelo painel —
-    // o que foi salvo pelo painel tem prioridade se o mesmo ID existir nos dois.
-    function obterRendersManuais(id) {
-      return rendersManuaisSalvos[id] || manualRenders[id] || null;
-    }
-
-    function abrirRendersManuais() {
-      document.getElementById('renderManualModalOverlay').style.display = 'flex';
-      document.getElementById('renderManualId').value = '';
-      document.getElementById('renderManualUrls').value = '';
-      
-      // Limpa a barra de pesquisa toda vez que o modal é aberto
-      const pesquisaInput = document.getElementById('pesquisaRenderManual');
-      if (pesquisaInput) pesquisaInput.value = '';
-      
-      renderizarListaRendersManuais();
-    }
-
-    function fecharRendersManuais(event) {
-      if (event) event.preventDefault();
-      document.getElementById('renderManualModalOverlay').style.display = 'none';
-    }
-
-    function salvarRenderManual() {
-      const id = document.getElementById('renderManualId').value.trim();
-      const urlsTexto = document.getElementById('renderManualUrls').value.trim();
-      const substituirTudo = document.getElementById('renderManualSubstituir').checked;
-
-      if (!id) { alert('Informe o ID do item.'); return; }
-      const novasUrls = urlsTexto.split('\n').map(u => u.trim()).filter(u => u.length > 0);
-      if (novasUrls.length === 0) { alert('Cole pelo menos uma URL de imagem.'); return; }
-
-      if (substituirTudo || !rendersManuaisSalvos[id]) {
-        rendersManuaisSalvos[id] = novasUrls;
-      } else {
-        // Soma como estilo novo, sem duplicar URL que já estava salva.
-        const existentes = rendersManuaisSalvos[id];
-        novasUrls.forEach(url => { if (!existentes.includes(url)) existentes.push(url); });
-      }
-      salvarRendersManuaisNoStorage();
-
-      document.getElementById('renderManualUrls').value = ''; 
-      document.getElementById('renderManualSubstituir').checked = false;
-      
-      renderizarListaRendersManuais();
-      mostrarItens(); // atualiza os cards já visíveis, caso o item esteja na tela
-    }
-
-    function removerRenderManual(id) {
-      delete rendersManuaisSalvos[id];
-      salvarRendersManuaisNoStorage();
-      renderizarListaRendersManuais();
-      mostrarItens();
-    }
-
-    function renderizarListaRendersManuais() {
-      const lista = document.getElementById('listaRendersManuais');
-      const inputBusca = document.getElementById('pesquisaRenderManual');
-      const termo = inputBusca ? inputBusca.value.toLowerCase().trim() : '';
-
-      const todosIds = Object.keys(rendersManuaisSalvos);
-
-      if (todosIds.length === 0) {
-        lista.innerHTML = '<p style="color:#777; text-align:center;">Nenhum render manual salvo ainda.</p>';
-        return;
-      }
-
-      // Filtra os IDs baseados no que foi digitado na barra de pesquisa
-      const ids = todosIds.filter(id => id.toLowerCase().includes(termo));
-
-      if (ids.length === 0) {
-        lista.innerHTML = '<p style="color:#777; text-align:center;">Nenhum ID encontrado com essa pesquisa.</p>';
-        return;
-      }
-
-      lista.innerHTML = ids.map(id => `
-        <div style="background:rgba(0,0,0,0.3); border-radius:10px; padding:14px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-            <div>
-              <div style="font-weight:bold; word-break:break-all;">${id}</div>
-              <div style="color:#aaa; font-size:0.85rem;">${rendersManuaisSalvos[id].length} estilo(s)</div>
-            </div>
-            <button onclick="removerRenderManual('${id.replace(/'/g, "\\'")}')" style="background:#ff4d4d; border:none; color:white; border-radius:8px; padding:8px 14px; cursor:pointer;">Remover tudo</button>
-          </div>
-          <div style="display:flex; flex-wrap:wrap; gap:8px;">
-            ${rendersManuaisSalvos[id].map((url, idx) => `
-              <div style="position:relative;">
-                <img src="${url}" style="width:60px; height:60px; object-fit:contain; background:#111; border-radius:8px; border:2px solid #555;" onerror="this.style.opacity='0.2'">
-                <button onclick="removerUrlRenderManual('${id.replace(/'/g, "\\'")}', ${idx})" title="Remover só este estilo"
-                        style="position:absolute; top:-6px; right:-6px; width:20px; height:20px; border-radius:50%; background:#ff4d4d; border:none; color:white; font-size:12px; cursor:pointer; line-height:1;">×</button>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-      `).join('');
-    }
-
-    function removerUrlRenderManual(id, index) {
-      if (!rendersManuaisSalvos[id]) return;
-      rendersManuaisSalvos[id].splice(index, 1);
-      if (rendersManuaisSalvos[id].length === 0) delete rendersManuaisSalvos[id];
-      salvarRendersManuaisNoStorage();
-      renderizarListaRendersManuais();
-      mostrarItens();
-    }
-
-    // === FUNÇÕES DE EXPORTAR E IMPORTAR RENDERS MANUAIS ===
-    function exportarRendersManuais() {
-      // Verifica se você tem algum render manual salvo
-      if (Object.keys(rendersManuaisSalvos).length === 0) {
-        alert("Sua lista está vazia! Adicione algum ID e Render primeiro.");
-        return;
-      }
-      
-      // Transforma seus IDs e URLs em texto
-      const dataStr = JSON.stringify(rendersManuaisSalvos, null, 2);
-      const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
-      
-      // Baixa o arquivo para o seu PC
-      const link = document.createElement('a');
-      link.href = dataUri;
-      link.download = 'meus-renders-manuais.json';
-      link.click();
-    }
-
-    function importarRendersManuais(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        try {
-          const importado = JSON.parse(e.target.result);
-          
-          let itensAdicionados = 0;
-          
-          // O código lê o arquivo e adiciona os IDs e Imagens sem apagar o que o Juako já tem
-          for (const [id, urls] of Object.entries(importado)) {
-            if (Array.isArray(urls)) {
-              if (!rendersManuaisSalvos[id]) {
-                rendersManuaisSalvos[id] = [];
-              }
-              // Só adiciona a URL se ela já não estiver lá
-              urls.forEach(url => {
-                if (!rendersManuaisSalvos[id].includes(url)) {
-                  rendersManuaisSalvos[id].push(url);
-                }
-              });
-              itensAdicionados++;
-            }
-          }
-
-          // Salva no navegador e atualiza a tela
-          salvarRendersManuaisNoStorage();
-          renderizarListaRendersManuais();
-          mostrarItens(); 
-          
-          alert(`Sucesso! Foram importados os renders de ${itensAdicionados} IDs.`);
-        } catch (err) {
-          alert("Erro: O arquivo selecionado não é válido.");
-        }
-        
-        // Limpa o botão para poder importar outro arquivo depois, se quiser
-        event.target.value = '';
-      };
-      
-      reader.readAsText(file);
-    }
-    // =======================================================
-
-    let todosItens = [];
-    let meuVestiario = JSON.parse(localStorage.getItem('meuVestiario')) || [];
-    let itensMostrados = 0;
-    const itensPorVez = 48; 
-    let currentTab = 'all';
-
-    // === LOJA DE HOJE ===
-    let itensLojaHoje = [];      // itens à venda hoje (achatados, um por item — usado pra tags/preço em qualquer aba)
-    let ofertasLoja = [];        // ofertas da loja agrupadas (um card por pacote/oferta) — usado na aba Loja
-    let idsNaLojaHoje = new Set(); // ids que estão na loja HOJE, com certeza (cruzado com o /v2/shop real)
-    let dadosLojaPorItem = {};   // id -> { _precoFinal, _precoRegular, _bundle, _newDisplayAsset, _secao }, pra usar em QUALQUER aba
-    let secoesLoja = [];         // [{ nome, index }] únicos, na ordem em que a loja os organiza
-    let lojaHojeCarregada = false;
-
-    // === HISTÓRICO DE LOJA (persistente, salvo no navegador) ===
-    // Toda vez que a loja carrega, guardamos o último preço/data visto de cada item aqui.
-    // Isso NÃO recupera o passado (a API só mostra a loja de hoje) — mas a partir de agora,
-    // cada item que passar pela loja fica registrado, mesmo depois de sair de circulação.
-    const CHAVE_HISTORICO_LOJA = 'historicoLojaFortnite';
-
-    function carregarHistoricoLoja() {
-      try {
-        return JSON.parse(localStorage.getItem(CHAVE_HISTORICO_LOJA)) || {};
-      } catch (e) {
-        return {};
-      }
-    }
-
-    let historicoLoja = carregarHistoricoLoja(); // id -> { precoFinal, precoRegular, secao, data, nome }
-
-    function salvarHistoricoLoja() {
-      try {
-        localStorage.setItem(CHAVE_HISTORICO_LOJA, JSON.stringify(historicoLoja));
-      } catch (e) {
-        console.warn('Não foi possível salvar o histórico da loja (localStorage cheio ou bloqueado).', e);
-      }
-    }
-
-    function registrarNoHistoricoLoja(itens) {
-      const hoje = new Date().toISOString().slice(0, 10);
-      // Mesma prioridade do dadosLojaPorItem: se o item é vendido sozinho E também dentro de
-      // um pacote, o histórico guarda o preço da venda individual.
-      const ordenados = [...itens.filter(i => i._bundle), ...itens.filter(i => !i._bundle)];
-      ordenados.forEach(item => {
-        // Guarda o(s) render(s) reais também — sem isso, quando o item sai da loja, a gente
-        // perde esse render pra sempre (a API não tem endpoint de loja histórica).
-        const rendersDoItem = extrairRenderImagesReais(item._newDisplayAsset).map(r => r.imagem);
-
-        historicoLoja[item.id] = {
-          precoFinal: item._precoFinal,
-          precoRegular: item._precoRegular,
-          secao: item._secao,
-          data: hoje,
-          nome: item.name,
-          bundle: item._bundle,
-          renders: rendersDoItem.length > 0 ? rendersDoItem : (historicoLoja[item.id] ? historicoLoja[item.id].renders : undefined)
-        };
-      });
-      salvarHistoricoLoja();
-    }
-    let lojaHojeCarregando = false;
-
-    async function carregarLojaHoje() {
-      if (lojaHojeCarregada || lojaHojeCarregando) return;
-      lojaHojeCarregando = true;
-      try {
-        const res = await fetch('https://fortnite-api.com/v2/shop?language=pt-BR');
-        const json = await res.json();
-        const entradas = (json.data && json.data.entries) || [];
-        const itens = [];
-        const ofertas = [];
-        const secoesMap = new Map();
-
-        entradas.forEach(entrada => {
-          const listaItens = entrada.brItems || entrada.br || [];
-          
-          // Captura as músicas de festival se estiverem à venda na oferta
-          if (entrada.tracks) {
-            entrada.tracks.forEach(track => {
-              listaItens.push({
-                id: track.id,
-                name: track.title,
-                description: `Artista: ${track.artist}`,
-                type: { value: 'track', displayValue: 'Música de Festival' },
-                rarity: { value: 'epic', displayValue: 'Épico' },
-                images: { icon: track.albumArt, smallIcon: track.albumArt, featured: track.albumArt }
-              });
-            });
-          }
-
-          if (listaItens.length === 0) return;
-
-          // A entrada do Passe de Batalha vem com dezenas de itens (todas as recompensas do passe)
-          // agrupados numa única "oferta". Isso não é uma compra individual de item — é só a
-          // vitrine do passe. Se deixar passar, todo item do passe fica marcado como "na loja".
-          const devName = (entrada.devName || entrada.dev_name || '').toLowerCase();
-          const offerId = (entrada.offerId || entrada.offer_id || '').toLowerCase();
-          const nomeBundleEntrada = (entrada.bundle && entrada.bundle.name) ? entrada.bundle.name.toLowerCase() : '';
-          const ehPasseDeBatalha = devName.includes('battlepass') || devName.includes('battle_pass')
-            || offerId.includes('battlepass') || nomeBundleEntrada.includes('passe de batalha')
-            || listaItens.length > 10; // rede de segurança: nenhum pacote de loja normal tem mais que isso
-
-          if (ehPasseDeBatalha) return;
-
-          const nomeSecao = (entrada.layout && entrada.layout.name) ? entrada.layout.name : 'Outros';
-          const indexSecao = (entrada.layout && typeof entrada.layout.index === 'number') ? entrada.layout.index : 999;
-          if (!secoesMap.has(nomeSecao)) secoesMap.set(nomeSecao, indexSecao);
-
-          listaItens.forEach(itemBase => {
-            itens.push(Object.assign({}, itemBase, {
-              _precoFinal: entrada.finalPrice,
-              _precoRegular: entrada.regularPrice,
-              _bundle: listaItens.length > 1,
-              _newDisplayAsset: entrada.newDisplayAsset || null,
-              _secao: nomeSecao
-            }));
-          });
-
-          // Uma "oferta" = um card na aba Loja. Quando a entrada tem mais de 1 item, é um pacote:
-          // mostramos UM card só (com a arte do pacote), não um card repetido pra cada peça.
-          const rendersOferta = extrairRenderImagesReais(entrada.newDisplayAsset);
-          const imagemOferta = rendersOferta.length > 0
-            ? rendersOferta[0].imagem
-            : ((listaItens[0].images && (listaItens[0].images.featured || listaItens[0].images.icon || listaItens[0].images.smallIcon)) || 'https://via.placeholder.com/150');
-
-          const nomeOferta = listaItens.length > 1
-            ? ((entrada.bundle && entrada.bundle.name) ? entrada.bundle.name : listaItens.map(i => i.name).join(' + '))
-            : listaItens[0].name;
-
-          ofertas.push({
-            idOferta: entrada.offerId || entrada.offer_id || listaItens.map(i => i.id).join('_'),
-            nome: nomeOferta,
-            imagem: imagemOferta,
-            precoFinal: entrada.finalPrice,
-            precoRegular: entrada.regularPrice,
-            secao: nomeSecao,
-            isBundle: listaItens.length > 1,
-            itens: listaItens,
-            newDisplayAsset: entrada.newDisplayAsset || null
-          });
-        });
-
-        ofertasLoja = ofertas;
-
-        itensLojaHoje = itens;
-        idsNaLojaHoje = new Set(itens.map(i => i.id));
-
-        // Quando o MESMO item aparece em mais de uma oferta (ex: vendido sozinho E também
-        // dentro de um pacote), a venda individual tem prioridade — é o preço/render que faz
-        // sentido mostrar quando alguém abre o modal daquele item especificamente. Os dados do
-        // pacote só entram como fallback pra item que NUNCA é vendido separado.
-        dadosLojaPorItem = {};
-        itens.filter(i => i._bundle).forEach(i => {
-          dadosLojaPorItem[i.id] = {
-            _precoFinal: i._precoFinal,
-            _precoRegular: i._precoRegular,
-            _bundle: i._bundle,
-            _newDisplayAsset: i._newDisplayAsset,
-            _secao: i._secao
-          };
-        });
-        itens.filter(i => !i._bundle).forEach(i => {
-          dadosLojaPorItem[i.id] = {
-            _precoFinal: i._precoFinal,
-            _precoRegular: i._precoRegular,
-            _bundle: i._bundle,
-            _newDisplayAsset: i._newDisplayAsset,
-            _secao: i._secao
-          };
-        });
-        registrarNoHistoricoLoja(itens);
-        secoesLoja = [...secoesMap.entries()]
-          .sort((a, b) => a[1] - b[1])
-          .map(([nome]) => nome);
-        lojaHojeCarregada = true;
-      } catch (error) {
-        console.error("Erro ao carregar a loja de hoje:", error);
-        const grid = document.getElementById('grid');
-        if (currentTab === 'shop') {
-          grid.innerHTML = '<p style="color:#ff7b7b; text-align:center; width:100%; margin-top:40px;">Não foi possível carregar a loja de hoje. Tente novamente mais tarde.</p>';
-        }
-      } finally {
-        lojaHojeCarregando = false;
-      }
-    }
-
-    async function carregarTodos() {
-      try {
-        const res = await fetch('https://fortnite-api.com/v2/cosmetics?language=pt-BR');
-        const json = await res.json();
-        
-        if (!json.data || !json.data.br) {
-            console.log("Erro na estrutura da API.");
-            return;
-        }
-
-        //--
-        let tracksFormatadas = [];
-        if (json.data.tracks) {
-          tracksFormatadas = json.data.tracks.map(track => ({
-            id: track.id,
-            name: track.title, // O título da música vira o nome do item
-            description: `Artista: ${track.artist} | Ano: ${track.releaseYear || 'Desconhecido'}`,
-            type: { value: 'track', displayValue: 'Música de Festival' },
-            rarity: { value: 'epic', displayValue: 'Épico' }, // Músicas ficam com fundo roxo/épico
-            images: { 
-              icon: track.albumArt, 
-              smallIcon: track.albumArt, 
-              featured: track.albumArt,
-              other: { background: track.albumArt }
-            },
-            added: track.added,
-            introduction: { text: 'Musica Festival' },
-            gameplayTags: ['festival']
-          }));
-        }
-
-        // 2. Junta os itens normais com as Músicas de Festival!
-        todosItens = [...json.data.br, ...tracksFormatadas].sort((a, b) => new Date(b.added || 0) - new Date(a.added || 0));
-
-        const sets = [...new Set(todosItens.filter(i => i.set && i.set.value).map(i => i.set.value))].sort();
-        const setDatalist = document.getElementById('setOptions');
-        sets.forEach(setName => {
-          const option = document.createElement('option');
-          option.value = setName;
-          setDatalist.appendChild(option);
-        });
-
-        // === INÍCIO: PREENCHER FILTRO DE TEMPORADAS ===
-        const listaTemporadas = [];
-        const seasonsVistas = new Set();
-        todosItens.forEach(item => {
-            if (item.introduction && item.introduction.text) {
-                const text = item.introduction.text;
-                if (!seasonsVistas.has(text)) {
-                    seasonsVistas.add(text);
-                    // Procura os números de capítulo e temporada no texto para podermos ordenar direitinho
-                    const capMatch = text.match(/Capítulo (\d+)/i);
-                    const tempMatch = text.match(/Temporada (\d+)/i) || text.match(/Temporada (X)/i);
-                    let cap = capMatch ? parseInt(capMatch[1]) : 0;
-                    let temp = 0;
-                    if (tempMatch) {
-                        temp = tempMatch[1].toUpperCase() === 'X' ? 10 : parseInt(tempMatch[1]);
-                    }
-                    listaTemporadas.push({ text: text, cap: cap, temp: temp });
-                }
-            }
-        });
-        
-        // Ordena por Capítulo primeiro e depois por Temporada
-        listaTemporadas.sort((a, b) => {
-            if (a.cap !== b.cap) return a.cap - b.cap;
-            return a.temp - b.temp;
-        });
-
-        const seasonSelect = document.getElementById('seasonFilter');
-        listaTemporadas.forEach(s => {
-            const opt = document.createElement('option');
-            opt.value = s.text;
-            opt.textContent = s.text; // Ex: "Capítulo 7, Temporada 3"
-            seasonSelect.appendChild(opt);
-        });
-        // === FIM: PREENCHER FILTRO DE TEMPORADAS ===
-
-        mostrarMais();
-
-        // Carrega a loja de hoje em paralelo (sem travar a tela) só pra saber COM CERTEZA
-        // quais itens estão à venda agora — usado pra deixar a tag "Loja de Itens" confiável
-        // em todas as abas, não só dentro da aba Loja.
-        carregarLojaHoje().then(() => {
-          if (currentTab === 'all' || currentTab === 'my') mostrarItens();
-        });
-      } catch (error) {
-        console.error("Erro no fetch da API:", error);
-      }
-    }
-
-    let telasDeCarregamento = null; // cache: calculado só uma vez, depois só refiltra na busca
-
-    // === MEU PERFIL (estatísticas via /v2/stats/br/v2) ===
-    // Esse endpoint exige uma API Key própria (grátis, gerada em dash.fortnite-api.com).
-    // A chave e o nome ficam salvos só neste navegador, pra não precisar digitar toda vez.
-    (function preencherCredenciaisPerfilSalvas() {
-      const apiKeySalva = localStorage.getItem('perfilApiKey');
-      const nomeSalvo = localStorage.getItem('perfilNome');
-      if (apiKeySalva) document.getElementById('perfilApiKey').value = apiKeySalva;
-      if (nomeSalvo) document.getElementById('perfilNome').value = nomeSalvo;
-    })();
-
-    async function buscarPerfil() {
-      const apiKey = document.getElementById('perfilApiKey').value.trim();
-      const nome = document.getElementById('perfilNome').value.trim();
-      const resultado = document.getElementById('perfilResultado');
-
-      if (!apiKey) { alert('Cole sua API Key primeiro (veja o link acima de onde pegar).'); return; }
-      if (!nome) { alert('Digite o nome Epic Games do jogador.'); return; }
-
-      localStorage.setItem('perfilApiKey', apiKey);
-      localStorage.setItem('perfilNome', nome);
-
-      resultado.innerHTML = '<p style="color:#ccc; text-align:center; margin-top:30px;">Buscando estatísticas...</p>';
-
-      try {
-        const res = await fetch(`https://fortnite-api.com/v2/stats/br/v2?name=${encodeURIComponent(nome)}`, {
-          headers: { 'Authorization': apiKey }
-        });
-
-        if (res.status === 401 || res.status === 403) {
-          resultado.innerHTML = '<p style="color:#ff7b7b; text-align:center; margin-top:30px;">API Key inválida ou sem permissão. Confira se copiou certo em dash.fortnite-api.com.</p>';
-          return;
-        }
-        if (res.status === 404) {
-          resultado.innerHTML = '<p style="color:#ff7b7b; text-align:center; margin-top:30px;">Jogador não encontrado. Confira o nome Epic Games (é o que aparece no canto superior esquerdo dentro do jogo).</p>';
-          return;
-        }
-        if (!res.ok) {
-          resultado.innerHTML = `<p style="color:#ff7b7b; text-align:center; margin-top:30px;">Erro ao buscar (código ${res.status}). Tente novamente mais tarde.</p>`;
-          return;
-        }
-
-        const json = await res.json();
-        renderizarPerfil(json.data);
-      } catch (error) {
-        console.error('Erro ao buscar perfil:', error);
-        resultado.innerHTML = '<p style="color:#ff7b7b; text-align:center; margin-top:30px;">Não foi possível conectar à API. Tente novamente.</p>';
-      }
-    }
-
-    function formatarNumero(n) {
-      return (n || 0).toLocaleString('pt-BR');
-    }
-
-    function renderizarPerfil(data) {
-      const resultado = document.getElementById('perfilResultado');
-      if (!data || !data.stats) {
-        resultado.innerHTML = '<p style="color:#ff7b7b; text-align:center; margin-top:30px;">Esse jogador não tem estatísticas públicas disponíveis.</p>';
-        return;
-      }
-
-      const metodos = [
-        { chave: 'all', nome: 'Todos os Métodos' },
-        { chave: 'keyboardMouse', nome: 'Teclado e Mouse' },
-        { chave: 'gamepad', nome: 'Controle' },
-        { chave: 'touch', nome: 'Touch' }
-      ].filter(m => data.stats[m.chave]);
-
-      if (metodos.length === 0) {
-        resultado.innerHTML = '<p style="color:#ff7b7b; text-align:center; margin-top:30px;">Esse jogador não tem estatísticas públicas disponíveis.</p>';
-        return;
-      }
-
-      const modos = [
-        { chave: 'overall', nome: 'Geral' },
-        { chave: 'solo', nome: 'Solo' },
-        { chave: 'duo', nome: 'Dupla' },
-        { chave: 'trio', nome: 'Trio' },
-        { chave: 'squad', nome: 'Esquadrão' },
-        { chave: 'ltm', nome: 'Modo Limitado' }
-      ];
-
-      const cabecalho = `
-        <div style="display:flex; align-items:center; gap:16px; margin-bottom:20px;">
-          ${data.account && data.account.name ? `<h2 style="margin:0;">${data.account.name}</h2>` : ''}
-          ${data.battlePass && data.battlePass.level ? `<span style="background:#ffcc00; color:black; font-weight:bold; padding:6px 14px; border-radius:20px;">Nível ${data.battlePass.level}</span>` : ''}
-        </div>
-        <div class="tabs" id="perfilMetodos" style="justify-content:flex-start; margin:0 0 20px;">
-          ${metodos.map((m, i) => `<div class="tab ${i === 0 ? 'active' : ''}" data-metodo="${m.chave}">${m.nome}</div>`).join('')}
-        </div>
-        <div id="perfilStatsGrid"></div>
-      `;
-      resultado.innerHTML = cabecalho;
-
-      function montarGridStats(metodoChave) {
-        const statsDoMetodo = data.stats[metodoChave];
-        const grid = document.getElementById('perfilStatsGrid');
-        const cards = modos
-          .filter(m => statsDoMetodo[m.chave])
-          .map(m => {
-            const s = statsDoMetodo[m.chave];
-            return `
-              <div style="background:rgba(0,0,0,0.4); border:2px solid #333; border-radius:12px; padding:18px;">
-                <div style="color:#ffcc00; font-weight:bold; font-size:1.1rem; margin-bottom:12px;">${m.nome}</div>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:0.9rem;">
-                  <div>🏆 Vitórias: <strong>${formatarNumero(s.wins)}</strong></div>
-                  <div>🎯 Eliminações: <strong>${formatarNumero(s.kills)}</strong></div>
-                  <div>🎮 Partidas: <strong>${formatarNumero(s.matches)}</strong></div>
-                  <div>📊 K/D: <strong>${s.kd != null ? s.kd.toFixed(2) : '—'}</strong></div>
-                  <div>📈 Taxa de vitória: <strong>${s.winRate != null ? s.winRate.toFixed(1) + '%' : '—'}</strong></div>
-                  <div>⏱️ Min. jogados: <strong>${formatarNumero(s.minutesPlayed)}</strong></div>
-                </div>
-              </div>
-            `;
-          }).join('');
-        grid.innerHTML = `<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:16px;">${cards || '<p style="color:#888;">Sem dados pra esse método.</p>'}</div>`;
-      }
-
-      montarGridStats(metodos[0].chave);
-
-      document.querySelectorAll('#perfilMetodos .tab').forEach(tab => {
-        tab.addEventListener('click', () => {
-          document.querySelectorAll('#perfilMetodos .tab').forEach(t => t.classList.remove('active'));
-          tab.classList.add('active');
-          montarGridStats(tab.dataset.metodo);
-        });
-      });
-    }
-
-    function abrirConfiguracoes() {
-        document.getElementById('configModalOverlay').style.display = 'flex';
-        const bgGrid = document.getElementById('bgOptionsGrid');
-        document.getElementById('bgSearchInput').value = '';
-
-        if (todosItens.length === 0) {
-            bgGrid.innerHTML = '<p style="color:#ffcc00; font-size: 1.1rem; text-align: center; width: 100%; margin-top: 50px;">⏳ Baixando dados do Fortnite... Feche, aguarde alguns segundos e abra novamente!</p>';
-            return;
-        }
-
-        if (!telasDeCarregamento) {
-            telasDeCarregamento = todosItens.filter(i => {
-                if (!i.type) return false;
-                const tipoValue = i.type.value ? i.type.value.toLowerCase() : '';
-                const backendValue = i.type.backendValue ? i.type.backendValue : '';
-                return tipoValue === 'loadingscreen' || backendValue === 'AthenaLoadingScreen';
-            }).map(tela => {
-                let urlHD = '';
-                if (tela.images) {
-                    urlHD = (tela.images.other && tela.images.other.background) ? tela.images.other.background : (tela.images.featured || tela.images.icon);
-                }
-                return { nome: tela.name || 'Tela de Carregamento', urlHD };
-            }).filter(t => !!t.urlHD);
-        }
-
-        renderizarOpcoesFundo('');
-    }
-
-    function filtrarFundos() {
-        const termo = document.getElementById('bgSearchInput').value.toLowerCase().trim();
-        renderizarOpcoesFundo(termo);
-    }
-
-    function renderizarOpcoesFundo(termo) {
-        const bgGrid = document.getElementById('bgOptionsGrid');
-        if (!telasDeCarregamento) return;
-
-        let html = '';
-        // O fundo padrão só aparece quando não há pesquisa ativa (não é uma "tela de carregamento" de verdade)
-        if (!termo) {
-            html += `<img src="${fundoPadrao}" class="bg-option ${meuFundoAtual === fundoPadrao ? 'active' : ''}" onclick="mudarFundoLocker('${fundoPadrao}', this)" title="Fundo Padrão">`;
-        }
-
-        const filtradas = termo
-            ? telasDeCarregamento.filter(t => t.nome.toLowerCase().includes(termo))
-            : telasDeCarregamento;
-
-        filtradas.forEach(tela => {
-            const ativo = (meuFundoAtual === tela.urlHD) ? 'active' : '';
-            html += `<img loading="lazy" src="${tela.urlHD}" class="bg-option ${ativo}" onclick="mudarFundoLocker('${tela.urlHD}', this)" title="${tela.nome}">`;
-        });
-
-        bgGrid.innerHTML = html || '<p style="color:#777; text-align:center; width:100%; margin-top:40px;">Nenhuma tela de carregamento encontrada com esse nome.</p>';
-    }
-
-    function fecharConfiguracoes(event) {
-        if (event) event.preventDefault();
-        document.getElementById('configModalOverlay').style.display = 'none';
-    }
-
-    function mudarFundoLocker(urlFundo, elementoImg) {
-        meuFundoAtual = urlFundo;
-        localStorage.setItem('fundoVestiario', urlFundo);
-        aplicarFundoCSS(urlFundo);
-        
-        document.querySelectorAll('.bg-option').forEach(img => img.classList.remove('active'));
-        if (elementoImg) elementoImg.classList.add('active');
-    }
-
-    function extrairRenderImagesReais(newDisplayAsset) {
-      if (!newDisplayAsset) return [];
-      const brutos = newDisplayAsset.renderImages || newDisplayAsset.render_images || [];
-      return brutos
-        .map((r, idx) => ({
-          nome: r.productTag || r.product_tag || `Estilo ${idx + 1}`,
-          imagem: typeof r.image === 'string' ? r.image : (r.image && (r.image.url || r.image.src))
-        }))
-        .filter(r => !!r.imagem);
-    }
-
-    // Modal específico pra PACOTES (ofertas com mais de 1 item). Mostra a arte do pacote,
-    // preço, seletor de render (se a loja tiver), e a lista de itens inclusos — cada um
-    // clicável, abrindo o modal normal daquele item específico.
-    function abrirModalOferta(oferta) {
-      document.getElementById('modalOverlay').style.display = 'flex';
-      const modalLeft = document.querySelector('.modal-left');
-      const temSkin = oferta.itens.some(i => i.type && i.type.value === 'outfit');
-      if (temSkin) {
-        modalLeft.classList.add('is-skin');
-      } else {
-        modalLeft.classList.remove('is-skin');
-      }
-      const rendersOferta = extrairRenderImagesReais(oferta.newDisplayAsset);
-      const modalMainImg = document.getElementById('modalMainImg');
-      modalMainImg.src = oferta.imagem;
-      modalMainImg.onerror = null;
-
-      document.getElementById('modalTitle').textContent = oferta.nome;
-
-      const rarityElement = document.getElementById('modalRarity');
-      rarityElement.textContent = 'PACOTE';
-      rarityElement.style.backgroundColor = '#4dc5ff';
-      rarityElement.style.color = 'black';
-
-      document.getElementById('modalType').textContent = `${oferta.itens.length} itens`;
-
-      const conjuntosUnicos = [...new Set(oferta.itens.filter(i => i.set && i.set.value).map(i => i.set.value))];
-      document.getElementById('modalSet').innerHTML = conjuntosUnicos.length > 0
-        ? `Conjunto${conjuntosUnicos.length > 1 ? 's' : ''}: ${conjuntosUnicos.join(', ').toUpperCase()}`
-        : '';
-
-      document.getElementById('modalDesc').textContent = `Pacote com ${oferta.itens.length} itens disponível na loja.`;
-
-      document.getElementById('modalSource').textContent = 'Loja de Itens';
-      document.getElementById('modalSeason').textContent = (oferta.itens[0].introduction && oferta.itens[0].introduction.text) ? oferta.itens[0].introduction.text : 'Desconhecido';
-      const dataStr = oferta.itens[0].added ? new Date(oferta.itens[0].added).toLocaleDateString('pt-BR', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Desconhecida';
-      document.getElementById('modalDate').textContent = dataStr;
-
-      // Seletor de render (usa os renders reais do pacote, quando a loja fornecer)
-      const variantsContainer = document.getElementById('modalVariants');
-      variantsContainer.innerHTML = '';
-      if (rendersOferta.length > 0) {
-        const hdChannelDiv = document.createElement('div');
-        hdChannelDiv.className = 'variant-channel';
-        hdChannelDiv.innerHTML = `<div class="variant-channel-name">Visualização Render</div>`;
-        const hdOptionsDiv = document.createElement('div');
-        hdOptionsDiv.className = 'variant-options';
-        rendersOferta.forEach((r, index) => {
-          const btn = document.createElement('img');
-          btn.className = 'variant-icon hd-icon' + (index === 0 ? ' active' : '');
-          btn.src = r.imagem;
-          btn.title = r.nome;
-          btn.onerror = () => { btn.style.display = 'none'; };
-          btn.onclick = () => {
-            modalMainImg.src = r.imagem;
-            document.querySelectorAll('.variant-icon').forEach(el => el.classList.remove('active'));
-            btn.classList.add('active');
-          };
-          hdOptionsDiv.appendChild(btn);
-        });
-        hdChannelDiv.appendChild(hdOptionsDiv);
-        variantsContainer.appendChild(hdChannelDiv);
-      }
-
-      const linhaPreco = document.getElementById('modalPrecoLinha');
-      const precoLabel = document.getElementById('modalPrecoLabel');
-      const precoTexto = document.getElementById('modalPreco');
-      precoLabel.textContent = 'Preço do pacote:';
-      precoTexto.textContent = (oferta.precoRegular && oferta.precoRegular !== oferta.precoFinal)
-        ? `${oferta.precoFinal} V-Bucks (de ${oferta.precoRegular})`
-        : `${oferta.precoFinal} V-Bucks`;
-      linhaPreco.style.display = 'flex';
-
-      // Lista de itens inclusos no pacote — clicáveis, abrem o modal normal de cada um
-      const wrapPacote = document.getElementById('modalPacoteWrap');
-      const listaPacote = document.getElementById('modalPacoteItens');
-      listaPacote.innerHTML = '';
-      oferta.itens.forEach(itemDoPacote => {
-        const thumb = document.createElement('div');
-        thumb.className = 'pacote-item-thumb';
-        const imgUrl = (itemDoPacote.images && (itemDoPacote.images.icon || itemDoPacote.images.smallIcon)) || 'https://via.placeholder.com/150';
-        thumb.innerHTML = `<img src="${imgUrl}" alt="${itemDoPacote.name}"><span>${itemDoPacote.name}</span>`;
-        thumb.onclick = () => abrirModal(itemDoPacote);
-        listaPacote.appendChild(thumb);
-      });
-      wrapPacote.style.display = 'block';
-    }
-
-    function fecharModal(event) {
-      if (event) event.preventDefault();
-      document.getElementById('modalOverlay').style.display = 'none';
-    }
-
-    function abrirModal(itemOriginal) {
-      document.getElementById('modalOverlay').style.display = 'flex';
-      
-      const modalLeft = document.querySelector('.modal-left');
-      const modalContent = document.querySelector('.modal-content'); 
-      
-      // Limpa as regras anteriores toda vez que abre um modal novo
-      modalLeft.classList.remove('is-skin'); 
-      modalContent.classList.remove('is-loading-modal'); 
-      
-      // Aplica o formato certo dependendo do tipo do item
-      if (itemOriginal.type && itemOriginal.type.value === 'outfit') {
-        modalLeft.classList.add('is-skin');
-      } else if (itemOriginal.type && (itemOriginal.type.value === 'loadingscreen' || itemOriginal.type.backendValue === 'AthenaLoadingScreen')) {
-        modalContent.classList.add('is-loading-modal'); 
-      }
-      
-      document.getElementById('modalPacoteWrap').style.display = 'none';
-
-      // Se esse item está na loja hoje (mesmo vindo de "Todos os Itens" ou "Meu Vestiário"),
-      // junta os dados reais da loja (preço, render real etc) antes de montar o modal.
-      // Se não está mais na loja, mas JÁ esteve em algum momento desde que você começou a usar
-      // o app, usa o último preço/data vistos no histórico salvo no navegador.
-      const dadosLoja = dadosLojaPorItem[itemOriginal.id];
-
-      // "Todos os Itens" e "Meu Vestiário" mostram cada peça separada — o modal delas sempre
-      // exibe a versão individual do item (com o preço/render que existir pra ele: de venda
-      // avulsa quando houver, ou o do pacote como reserva quando só existir dentro de pacote).
-      // O modal de pacote completo (com a lista de itens inclusos) só abre a partir da aba Loja.
-      const dadosHistorico = !dadosLoja ? historicoLoja[itemOriginal.id] : null;
-
-      let item = itemOriginal;
-      if (dadosLoja) {
-        item = Object.assign({}, itemOriginal, dadosLoja, { _historico: false });
-      } else if (dadosHistorico) {
-        item = Object.assign({}, itemOriginal, {
-          _precoFinal: dadosHistorico.precoFinal,
-          _precoRegular: dadosHistorico.precoRegular,
-          _secao: dadosHistorico.secao,
-          _historico: true,
-          _dataHistorico: dadosHistorico.data,
-          _bundle: dadosHistorico.bundle,
-          _historicoRenders: dadosHistorico.renders
-        });
-      }
-      
-      let mainImg = 'https://via.placeholder.com/150';
-      // Quando o item não está mais na loja hoje, usa os renders salvos no histórico (se existirem)
-      // no lugar dos renders vivos do newDisplayAsset (que só existe pra item que está na loja agora).
-      const rendersReaisDaLoja = (item._historicoRenders && item._historicoRenders.length > 0)
-        ? item._historicoRenders.map((url, i) => ({ imagem: url, nome: `Estilo ${i + 1}` }))
-        : extrairRenderImagesReais(item._newDisplayAsset);
-      const rendersManuais = obterRendersManuais(item.id);
-      // Prioridade: render MANUAL (cadastrado pelo painel) sempre vence — é intencional e
-      // explícito. Depois, a versão WIDE (background) se for tela de carregamento.
-      // Depois imagem própria do item (featured). O render da loja só é usado
-      // quando vem de venda INDIVIDUAL de verdade; se o item só existe em pacote, cai pro ícone.
-      // Prioridade: render MANUAL (cadastrado pelo painel) sempre vence
-      if (rendersManuais && rendersManuais.length > 0) {
-        mainImg = rendersManuais[0];
-        
-      // Se for TELA DE CARREGAMENTO, usa a versão Widescreen (background)
-      } else if (item.type && (item.type.value === 'loadingscreen' || item.type.backendValue === 'AthenaLoadingScreen') && item.images && item.images.other && item.images.other.background) { 
-        mainImg = item.images.other.background;
-        
-      // Se for SPRAY, usa a versão 'decal' (imagem do desenho puro sem a parede de fundo)
-      } else if (item.type && item.type.value === 'spray' && item.images && item.images.other && item.images.other.decal) {
-        mainImg = item.images.other.decal;
-        
-      // --- REGRA NOVA: Se for EMOTICON, força o ícone para evitar links quebrados da Loja ---
-      } else if (item.type && (item.type.value === 'emoji' || item.type.backendValue === 'AthenaEmoji') && item.images) {
-        mainImg = item.images.icon || item.images.smallIcon || mainImg;
-        
-      } else if (item.images && item.images.featured) {
-        mainImg = item.images.featured;
-      } else if (rendersReaisDaLoja.length > 0 && !item._bundle) {
-        mainImg = rendersReaisDaLoja[0].imagem;
-      } else if (item.images) {
-        mainImg = item.images.renderImage || item.images.icon || item.images.smallIcon || mainImg;
-      }
-      const modalMainImg = document.getElementById('modalMainImg');
-      modalMainImg.src = mainImg;
-      modalMainImg.onerror = null; 
-      
-      document.getElementById('modalTitle').textContent = item.name || 'Desconhecido';
-      
-      const rarityElement = document.getElementById('modalRarity');
-      rarityElement.textContent = item.rarity ? item.rarity.displayValue : 'Comum';
-      
-      const rarityVal = item.rarity ? item.rarity.value : 'common';
-      let rarityColor = "#555";
-      switch(rarityVal) {
-        case 'common': rarityColor = "#b1b1b1"; break;
-        case 'uncommon': rarityColor = "#82c91e"; break;
-        case 'rare': rarityColor = "#339af0"; break;
-        case 'epic': rarityColor = "#ae3ec9"; break;
-        case 'legendary': rarityColor = "#f59f00"; break;
-        case 'mythic': rarityColor = "#f03e3e"; break;
-      }
-      rarityElement.style.backgroundColor = rarityColor;
-      rarityElement.style.color = (rarityVal === 'common' || rarityVal === 'uncommon') ? 'black' : 'white';
-
-      document.getElementById('modalType').textContent = item.type ? item.type.displayValue : 'Desconhecido';
-      document.getElementById('modalSet').innerHTML = (item.set && item.set.value) ? `Conjunto: ${item.set.value.toUpperCase()}` : '';
-      document.getElementById('modalDesc').textContent = item.description || 'Sem descrição.';
-
-      const dataStr = item.added ? new Date(item.added).toLocaleDateString('pt-BR', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Desconhecida';
-      document.getElementById('modalDate').textContent = dataStr;
-      document.getElementById('modalSeason').textContent = (item.introduction && item.introduction.text) ? item.introduction.text : 'Desconhecido';
-      
-      const tagsDoJogo = item.gameplayTags ? item.gameplayTags.join(' ').toLowerCase() : '';
-      const descMinusculo = item.description ? item.description.toLowerCase() : '';
-      const nomeMinusculo = item.name ? item.name.toLowerCase() : '';
-      const setName = (item.set && item.set.value) ? item.set.value.toLowerCase() : '';
-      
-      const naLoja = item.shopHistory && item.shopHistory.length > 0;
-      const noClube = tagsDoJogo.includes('crew') || descMinusculo.includes('clube fortnite');
-      const ehPasseAPI = (item.battlepass !== undefined && item.battlepass !== null) || tagsDoJogo.includes('battlepass');
-      
-      const ehLojaItem = itensLoja.includes(nomeMinusculo);
-      const ehPasseItem = itensPasse.includes(nomeMinusculo);
-      const ehClubeItem = itensClube.includes(nomeMinusculo);
-      const ehGratisItem = itensGratis.includes(nomeMinusculo);
-
-      const ehLojaConjunto = conjuntosLoja.includes(setName);
-      const ehPasseConjunto = conjuntosPasse.includes(setName);
-      const ehClubeConjunto = conjuntosClube.includes(setName);
-      const ehGratisConjunto = conjuntosGratis.includes(setName);
-      
-      let fonte = "Nenhuma Categoria";
-      
-      if (idsNaLojaHoje.has(item.id) || historicoLoja[item.id]) { fonte = "Loja de Itens"; }
-      else if (ehLojaItem) { fonte = "Loja de Itens"; }
-      else if (ehClubeItem) { fonte = "Clube Fortnite"; }
-      else if (ehPasseItem) { fonte = "Passe de Batalha"; }
-      else if (ehGratisItem) { fonte = "Grátis / Evento"; }
-      else if (ehLojaConjunto) { fonte = "Loja de Itens"; }
-      else if (ehClubeConjunto) { fonte = "Clube Fortnite"; }
-      else if (ehPasseConjunto) { fonte = "Passe de Batalha"; }
-      else if (ehGratisConjunto) { fonte = "Grátis / Evento"; }
-      else if (naLoja) { fonte = "Loja de Itens"; }
-      else if (noClube) { fonte = "Clube Fortnite"; }
-      else if (ehPasseAPI) { fonte = "Passe de Batalha"; }
-      else if (item._precoFinal !== undefined) { fonte = "Loja de Itens"; }
-      
-      document.getElementById('modalSource').textContent = fonte;
-
-      const variantsContainer = document.getElementById('modalVariants');
-      variantsContainer.innerHTML = ''; 
-
-      // Carrossel de renders: manuais primeiro (se cadastrados), senão os da loja (só pra venda individual).
-      const opcoesCarrossel = (rendersManuais && rendersManuais.length > 0)
-        ? rendersManuais.map((url, i) => ({ imagem: url, nome: `Manual ${i + 1}` }))
-        : ((rendersReaisDaLoja.length > 0 && !item._bundle) ? rendersReaisDaLoja : []);
-
-      if (opcoesCarrossel.length > 0) {
-        const hdChannelDiv = document.createElement('div');
-        hdChannelDiv.className = 'variant-channel';
-        hdChannelDiv.innerHTML = `<div class="variant-channel-name">Visualização Render</div>`;
-        const hdOptionsDiv = document.createElement('div');
-        hdOptionsDiv.className = 'variant-options';
-        opcoesCarrossel.forEach((r, index) => {
-          const btn = document.createElement('img');
-          btn.className = 'variant-icon hd-icon' + (index === 0 ? ' active' : '');
-          btn.src = r.imagem;
-          btn.title = r.nome;
-          btn.onerror = () => { btn.style.display = 'none'; };
-          btn.onclick = () => {
-            modalMainImg.src = r.imagem;
-            document.querySelectorAll('.variant-icon').forEach(el => el.classList.remove('active'));
-            btn.classList.add('active');
-          };
-          hdOptionsDiv.appendChild(btn);
-        });
-        hdChannelDiv.appendChild(hdOptionsDiv);
-        variantsContainer.appendChild(hdChannelDiv);
-      }
-
-      // Adicionamos a condição para ocultar se já houver renders
-      if (item.variants && item.variants.length > 0 && opcoesCarrossel.length === 0) {
-        item.variants.forEach(v => {
-          const channelDiv = document.createElement('div');
-          channelDiv.className = 'variant-channel';
-          channelDiv.innerHTML = `<div class="variant-channel-name">${v.channel} (ÍCONES / PARTES)</div>`;
-          const optionsDiv = document.createElement('div');
-          optionsDiv.className = 'variant-options';
-          
-          v.options.forEach((opt) => {
-            const img = document.createElement('img');
-            img.src = opt.image || mainImg; 
-            img.className = 'variant-icon part-icon';
-            img.title = `Ícone: ${opt.name || 'Variante'}`;
-            
-            img.onclick = () => {
-              modalMainImg.onerror = null;
-              if (opt.image) { modalMainImg.src = opt.image; }
-              document.querySelectorAll('.variant-icon').forEach(i => i.classList.remove('active'));
-              img.classList.add('active');
-            };
-            optionsDiv.appendChild(img);
-          });
-          channelDiv.appendChild(optionsDiv);
-          variantsContainer.appendChild(channelDiv);
-        });
-      }
-
-      // Preço: se está na loja AGORA, mostra o preço ao vivo; se só temos histórico salvo,
-      // mostra o último preço visto com a data. Se o único preço conhecido vem de um pacote
-      // (o item não é vendido avulso), avisa que é o preço do pacote, não do item sozinho.
-      const linhaPreco = document.getElementById('modalPrecoLinha');
-      const precoLabel = document.getElementById('modalPrecoLabel');
-      const precoTexto = document.getElementById('modalPreco');
-      if (item._precoFinal !== undefined) {
-        precoTexto.textContent = (item._precoRegular && item._precoRegular !== item._precoFinal)
-          ? `${item._precoFinal} V-Bucks (de ${item._precoRegular})`
-          : `${item._precoFinal} V-Bucks`;
-        if (item._historico) {
-          const dataFormatada = item._dataHistorico ? new Date(item._dataHistorico + 'T00:00:00').toLocaleDateString('pt-BR') : '';
-          precoLabel.textContent = `Último preço visto na loja${dataFormatada ? ' (' + dataFormatada + ')' : ''}${item._bundle ? ', em pacote' : ''}:`;
-        } else if (item._bundle) {
-          precoLabel.textContent = 'Preço do pacote (não vendido avulso):';
-        } else {
-          precoLabel.textContent = 'Preço na loja:';
-        }
-        linhaPreco.style.display = 'flex';
-      } else {
-        linhaPreco.style.display = 'none';
-      }
-    }
-
-    function itensDaAbaAtual() {
-      if (currentTab === 'my') return meuVestiario;
-      if (currentTab === 'shop') return ofertasLoja;
-      return todosItens;
-    }
-
-    function mostrarMais() {
-      const grid = document.getElementById('grid');
-      let itensParaMostrar = itensDaAbaAtual();
-
-      if (currentTab !== 'shop') {
-        itensParaMostrar.sort((a, b) => new Date(b.added || 0) - new Date(a.added || 0));
-      }
-
-      const termo = document.getElementById('search').value.toLowerCase().trim();
-      const raridade = document.getElementById('rarityFilter').value;
-      const tipo = document.getElementById('typeFilter').value;
-      const conjunto = document.getElementById('setFilter').value.toLowerCase().trim();
-      
-      // NOVA LINHA
-      const temporada = document.getElementById('seasonFilter').value;
-
-      let filtrados;
-      if (currentTab === 'shop') {
-        filtrados = itensParaMostrar.filter(oferta => {
-          const nomeOferta = oferta.nome.toLowerCase();
-          const matchSearchOferta = !termo || nomeOferta.includes(termo);
-          const matchSearchItens = !termo || oferta.itens.some(i =>
-            (i.name && i.name.toLowerCase().includes(termo)) ||
-            (i.set && i.set.value && i.set.value.toLowerCase().includes(termo))
-          );
-          const matchRarity = !raridade || oferta.itens.some(i => i.rarity && i.rarity.displayValue === raridade);
-          const matchType = !tipo || oferta.itens.some(i => i.type && i.type.value === tipo);
-          const matchSet = !conjunto || oferta.itens.some(i => i.set && i.set.value && i.set.value.toLowerCase().includes(conjunto));
-          
-          // NOVA LINHA E RETORNO ATUALIZADO
-          const matchSeason = !temporada || oferta.itens.some(i => i.introduction && i.introduction.text === temporada);
-          return (matchSearchOferta || matchSearchItens) && matchRarity && matchType && matchSet && matchSeason;
-        });
-      } else {
-        filtrados = itensParaMostrar.filter(item => {
-          const itemNome = item.name ? item.name.toLowerCase() : '';
-          const itemConjunto = (item.set && item.set.value) ? item.set.value.toLowerCase() : '';
-          const itemRaridade = item.rarity ? item.rarity.displayValue : '';
-          const itemTipo = item.type ? item.type.value : '';
-
-          const matchSearch = !termo || itemNome.includes(termo) || itemConjunto.includes(termo);
-          const matchRarity = !raridade || itemRaridade === raridade;
-          const matchType = !tipo || itemTipo === tipo;
-          const matchSet = !conjunto || itemConjunto.includes(conjunto);
-          
-          // NOVA LINHA E RETORNO ATUALIZADO
-          const matchSeason = !temporada || (item.introduction && item.introduction.text === temporada);
-          return matchSearch && matchRarity && matchType && matchSet && matchSeason;
-        });
-      }
-
-      if (currentTab === 'all') {
-        filtrados = agruparComPacotes(filtrados);
-      }
-
-      // === ABA LOJA: renderiza como faixas empilhadas por seção, igual ao jogo — sem paginação,
-      // sem pílulas clicáveis. Rola a página inteira e vê tudo, agrupado por título de seção. ===
-      if (currentTab === 'shop') {
-        document.getElementById('sentinela').style.display = 'none';
-
-        if (filtrados.length === 0 && itensParaMostrar.length === 0 && !lojaHojeCarregando) {
-          grid.innerHTML = '<p style="color:#ccc; text-align:center; width:100%; margin-top:40px;">Carregando a loja de hoje...</p>';
-          return;
-        }
-        if (filtrados.length === 0) {
-          grid.innerHTML = '<p style="color:#888; text-align:center; width:100%; margin-top:40px;">Nenhum item encontrado com esse filtro.</p>';
-          return;
-        }
-
-        grid.innerHTML = '';
-        grid.style.display = 'block'; // as faixas controlam o próprio layout em grade internamente
-
-        // Mantém a ordem das seções igual à loja do dia (secoesLoja já vem ordenada por layout.index)
-        const ordemSecoes = secoesLoja.length > 0 ? secoesLoja : [...new Set(filtrados.map(o => o.secao))];
-
-        ordemSecoes.forEach(nomeSecao => {
-          const ofertasDaSecao = filtrados.filter(o => o.secao === nomeSecao);
-          if (ofertasDaSecao.length === 0) return;
-
-          const faixa = document.createElement('div');
-          faixa.className = 'secao-loja';
-
-          const titulo = document.createElement('div');
-          titulo.className = 'secao-loja-titulo';
-          titulo.textContent = nomeSecao;
-          faixa.appendChild(titulo);
-
-          const gridDaSecao = document.createElement('div');
-          gridDaSecao.className = 'grid';
-          ofertasDaSecao.forEach(oferta => gridDaSecao.appendChild(criarCardOferta(oferta)));
-          faixa.appendChild(gridDaSecao);
-
-          grid.appendChild(faixa);
-        });
-
-        document.getElementById('count').textContent = meuVestiario.length;
-        return;
-      }
-
-      // === OUTRAS ABAS: continuam com o grid único paginado / scroll infinito de sempre ===
-      grid.style.display = 'grid';
-
-      const fim = Math.min(itensMostrados + itensPorVez, filtrados.length);
-
-      for (let i = itensMostrados; i < fim; i++) {
-        const entrada = filtrados[i];
-        if (entrada.itens) {
-          // É uma OFERTA agrupada (pacote) — mesmo card usado na aba Loja.
-          grid.appendChild(criarCardOferta(entrada));
-        } else {
-          grid.appendChild(criarCardItem(entrada));
-        }
-      }
-      
-      itensMostrados = fim;
-      
-      const sentinela = document.getElementById('sentinela');
-      if (itensMostrados >= filtrados.length) {
-          sentinela.style.display = 'none';
-      } else {
-          sentinela.style.display = 'block';
-      }
-      
-      document.getElementById('count').textContent = meuVestiario.length;
-    }
-
-    // Junta itens que pertencem a um PACOTE ativo na loja de hoje num card só (a oferta),
-    // igual já acontece na aba Loja. Itens sem pacote continuam como estão, separados.
-    function agruparComPacotes(lista) {
-      const resultado = [];
-      const idsJaCobertos = new Set();
-      const ofertasJaAdicionadas = new Set();
-
-      lista.forEach(item => {
-        if (idsJaCobertos.has(item.id)) return; // já apareceu dentro de um pacote antes na lista
-
-        const dadosLoja = dadosLojaPorItem[item.id];
-        if (dadosLoja && dadosLoja._bundle) {
-          const oferta = ofertasLoja.find(o => o.isBundle && o.itens.some(i => i.id === item.id));
-          if (oferta) {
-            oferta.itens.forEach(i => idsJaCobertos.add(i.id));
-            if (!ofertasJaAdicionadas.has(oferta.idOferta)) {
-              ofertasJaAdicionadas.add(oferta.idOferta);
-              resultado.push(oferta);
-            }
-            return;
-          }
-        }
-        resultado.push(item);
-      });
-
-      return resultado;
-    }
-
-    function criarCardItem(item) {
-      const noVestiario = meuVestiario.some(vItem => vItem.id === item.id);
-      const btnText = currentTab === 'my' ? '×' : (noVestiario ? '✓' : '+');
-      const btnBg = (currentTab !== 'my' && noVestiario) ? '#4CAF50' : '#ffcc00';
-      const btnColor = (currentTab !== 'my' && noVestiario) ? 'white' : 'black';
-
-      let introText = "Data Desconhecida";
-      if (item.introduction && item.introduction.text) {
-          introText = item.introduction.text;
-      }
-
-      const tagsDoJogo = item.gameplayTags ? item.gameplayTags.join(' ').toLowerCase() : '';
-      const desc = item.description ? item.description.toLowerCase() : '';
-      const nomeMinusculo = item.name ? item.name.toLowerCase() : '';
-      const setName = (item.set && item.set.value) ? item.set.value.toLowerCase() : '';
-      
-      const naLoja = item.shopHistory && item.shopHistory.length > 0;
-      const noClube = tagsDoJogo.includes('crew') || desc.includes('clube fortnite');
-      const ehPasseAPI = (item.battlepass !== undefined && item.battlepass !== null) || tagsDoJogo.includes('battlepass');
-      
-      const ehLojaItem = itensLoja.includes(nomeMinusculo);
-      const ehPasseItem = itensPasse.includes(nomeMinusculo);
-      const ehClubeItem = itensClube.includes(nomeMinusculo);
-      const ehGratisItem = itensGratis.includes(nomeMinusculo);
-
-      const ehLojaConjunto = conjuntosLoja.includes(setName);
-      const ehPasseConjunto = conjuntosPasse.includes(setName);
-      const ehClubeConjunto = conjuntosClube.includes(setName);
-      const ehGratisConjunto = conjuntosGratis.includes(setName);
-      
-      let fonte = "Nenhuma Categoria";
-      let corFonte = "#50c878"; 
-
-      if (idsNaLojaHoje.has(item.id) || historicoLoja[item.id]) { fonte = "Loja de Itens"; corFonte = "#ff7b00"; }
-      else if (ehLojaItem) { fonte = "Loja de Itens"; corFonte = "#ff7b00"; }
-      else if (ehClubeItem) { fonte = "Clube Fortnite"; corFonte = "#ff4d4d"; }
-      else if (ehPasseItem) { fonte = "Passe de Batalha"; corFonte = "#b864ff"; }
-      else if (ehGratisItem) { fonte = "Grátis / Evento"; corFonte = "#50c878"; }
-      else if (ehLojaConjunto) { fonte = "Loja de Itens"; corFonte = "#ff7b00"; }
-      else if (ehClubeConjunto) { fonte = "Clube Fortnite"; corFonte = "#ff4d4d"; }
-      else if (ehPasseConjunto) { fonte = "Passe de Batalha"; corFonte = "#b864ff"; }
-      else if (ehGratisConjunto) { fonte = "Grátis / Evento"; corFonte = "#50c878"; }
-      else if (naLoja) { fonte = "Loja de Itens"; corFonte = "#ff7b00"; }
-      else if (noClube) { fonte = "Clube Fortnite"; corFonte = "#ff4d4d"; }
-      else if (ehPasseAPI) { fonte = "Passe de Batalha"; corFonte = "#b864ff"; }
-
-      const itemImgUrl = (item.images && (item.images.icon || item.images.smallIcon)) ? (item.images.icon || item.images.smallIcon) : 'https://via.placeholder.com/150';
-      const itemRarityVal = item.rarity ? item.rarity.displayValue : 'Comum';
-      const itemTypeVal = item.type ? item.type.displayValue : 'Desconhecido';
-      const itemNameStr = item.name || 'Desconhecido';
-
-      const card = document.createElement('div');
-      card.className = 'card';
-      card.onclick = () => abrirModal(item); 
-      
-      card.innerHTML = `
-        <img loading="lazy" src="${itemImgUrl}" alt="${itemNameStr}">
-        <p>${itemNameStr}</p>
-        <div class="info">${itemRarityVal} | ${itemTypeVal}</div>
-        ${(item.set && item.set.value) ? `<div class="info info-conjunto">Conjunto: ${item.set.value}</div>` : ''}
-        <div class="info info-tempo">${introText}</div>
-        <div class="info" style="color: ${corFonte}; font-weight: bold;">${fonte}</div>
-        <button class="add-btn" style="background-color: ${btnBg}; color: ${btnColor};" onclick="event.stopPropagation(); handleButtonClick('${item.id}', this)">${btnText}</button>
-      `;
-      return card;
-    }
-
-    // Um card por OFERTA da loja: se for pacote, mostra a arte do pacote e todos os itens vão
-    // pro vestiário juntos ao clicar em "+". A raridade/tipo mostrados são do 1º item quando
-    // a oferta é só 1 item; quando é pacote, mostra "Pacote" com a contagem de itens.
-    function criarCardOferta(oferta) {
-      const todosNoVestiario = oferta.itens.every(i => meuVestiario.some(v => v.id === i.id));
-      const btnText = todosNoVestiario ? '✓' : '+';
-      const btnBg = todosNoVestiario ? '#4CAF50' : '#ffcc00';
-      const btnColor = todosNoVestiario ? 'white' : 'black';
-
-      const primeiro = oferta.itens[0];
-      const subtitulo = oferta.isBundle
-        ? `Pacote | ${oferta.itens.length} itens`
-        : `${primeiro.rarity ? primeiro.rarity.displayValue : 'Comum'} | ${primeiro.type ? primeiro.type.displayValue : 'Desconhecido'}`;
-
-      const conjuntosUnicos = [...new Set(oferta.itens.filter(i => i.set && i.set.value).map(i => i.set.value))];
-
-      let introText = "Data Desconhecida";
-      if (primeiro.introduction && primeiro.introduction.text) {
-        introText = primeiro.introduction.text;
-      }
-
-      const linhaExtra = currentTab === 'shop'
-        ? `<div class="info info-preco">💰 ${oferta.precoFinal} V-Bucks${oferta.isBundle ? ' (pacote)' : ''}</div>`
-        : `<div class="info info-tempo">${introText}</div>`;
-
-      const card = document.createElement('div');
-      card.className = 'card';
-      card.onclick = () => oferta.isBundle ? abrirModalOferta(oferta) : abrirModal(oferta.itens[0]);
-
-      card.innerHTML = `
-        <img loading="lazy" src="${oferta.imagem}" alt="${oferta.nome}">
-        <p>${oferta.nome}</p>
-        <div class="info">${subtitulo}</div>
-        ${conjuntosUnicos.length > 0 ? `<div class="info info-conjunto">Conjunto: ${conjuntosUnicos.join(', ')}</div>` : ''}
-        ${linhaExtra}
-        <div class="info" style="color: #ff7b00; font-weight: bold;">Loja de Itens</div>
-        <button class="add-btn" style="background-color: ${btnBg}; color: ${btnColor};" onclick="event.stopPropagation(); handleButtonClickOferta('${oferta.idOferta}', this)">${btnText}</button>
-      `;
-      return card;
-    }
-
-    const observadorScroll = new IntersectionObserver((entradas) => {
-        if (entradas[0].isIntersecting) {
-            mostrarMais();
-        }
-    }, { rootMargin: '200px' }); 
-
-    observadorScroll.observe(document.getElementById('sentinela'));
-
-    // =========================================================================
-    // CORREÇÃO: O BOTÃO AGORA ATUALIZA SOZINHO SEM RECARREGAR A TELA!
-    // =========================================================================
-    function handleButtonClick(id, btnElement) {
-        if (currentTab === 'my') { 
-            // Se estiver na aba "Meu Vestiário", o card só some da tela sem piscar nada
-            meuVestiario = meuVestiario.filter(i => i.id !== id);
-            localStorage.setItem('meuVestiario', JSON.stringify(meuVestiario));
-            
-            const card = btnElement.closest('.card');
-            if(card) {
-                card.remove(); 
-            }
-            document.getElementById('count').textContent = meuVestiario.length;
-        } else { 
-            // Aba "Todos os Itens": adiciona/remove do vestiário
-            const item = todosItens.find(i => i.id === id);
-            const index = meuVestiario.findIndex(i => i.id === id);
-            
-            if (index === -1) { 
-                meuVestiario.push(item); 
-                btnElement.textContent = '✓';
-                btnElement.style.backgroundColor = '#4CAF50';
-                btnElement.style.color = 'white';
-            } else { 
-                meuVestiario.splice(index, 1); 
-                btnElement.textContent = '+';
-                btnElement.style.backgroundColor = '#ffcc00';
-                btnElement.style.color = 'black';
-            }
-            
-            localStorage.setItem('meuVestiario', JSON.stringify(meuVestiario));
-            document.getElementById('count').textContent = meuVestiario.length;
-        }
-    }
-
-    // Botão "+"/"✓" nos cards da aba Loja: como o card representa a OFERTA (pode ser um pacote
-    // com vários itens), adiciona ou remove todos os itens daquele pacote de uma vez — igual o
-    // "Adicionar Conjunto" já faz pra conjuntos.
-    function handleButtonClickOferta(idOferta, btnElement) {
-      const oferta = ofertasLoja.find(o => o.idOferta === idOferta);
-      if (!oferta) return;
-
-      const todosNoVestiario = oferta.itens.every(i => meuVestiario.some(v => v.id === i.id));
-
-      if (todosNoVestiario) {
-        const idsDoPacote = new Set(oferta.itens.map(i => i.id));
-        meuVestiario = meuVestiario.filter(v => !idsDoPacote.has(v.id));
-        btnElement.textContent = '+';
-        btnElement.style.backgroundColor = '#ffcc00';
-        btnElement.style.color = 'black';
-      } else {
-        oferta.itens.forEach(i => {
-          if (!meuVestiario.some(v => v.id === i.id)) meuVestiario.push(i);
-        });
-        btnElement.textContent = '✓';
-        btnElement.style.backgroundColor = '#4CAF50';
-        btnElement.style.color = 'white';
-      }
-
-      localStorage.setItem('meuVestiario', JSON.stringify(meuVestiario));
-      document.getElementById('count').textContent = meuVestiario.length;
-    }
-
-    function adicionarTodoConjunto() {
-      const conjuntoPesquisado = document.getElementById('setFilter').value.toLowerCase().trim();
-      if (!conjuntoPesquisado) {
-        alert('Por favor, pesquise ou selecione um conjunto na barra "Buscar Conjunto" primeiro.'); return;
-      }
-      const itensDoConjunto = todosItens.filter(item => 
-        item.set && item.set.value && item.set.value.toLowerCase().includes(conjuntoPesquisado)
-      );
-      if (itensDoConjunto.length === 0) {
-        alert('Nenhum conjunto encontrado com esse termo.'); return;
-      }
-      let itensAdicionados = 0;
-      itensDoConjunto.forEach(item => {
-        const jaExiste = meuVestiario.some(vItem => vItem.id === item.id);
-        if (!jaExiste) { meuVestiario.push(item); itensAdicionados++; }
-      });
-      if (itensAdicionados > 0) {
-        localStorage.setItem('meuVestiario', JSON.stringify(meuVestiario));
-        mostrarItens();
-        alert(`${itensAdicionados} item(ns) encontrado(s) adicionado(s) com sucesso!`);
-      } else { alert('Todos os itens desta pesquisa já estão no seu vestiário.'); }
-    }
-
-    function mostrarItens() { itensMostrados = 0; document.getElementById('grid').innerHTML = ''; mostrarMais(); }
-    function aplicarFiltros() { mostrarItens(); }
-    function resetFiltros() {
-      document.getElementById('search').value = '';
-      document.getElementById('rarityFilter').value = '';
-      document.getElementById('typeFilter').value = '';
-      document.getElementById('seasonFilter').value = '';
-      document.getElementById('setFilter').value = '';
-      mostrarItens();
-    }
-
-    function exportarVestiario() {
-      if (meuVestiario.length === 0 && Object.keys(rendersManuaisSalvos).length === 0 && Object.keys(historicoLoja).length === 0) {
-        alert("Não há nada pra exportar ainda!"); return;
-      }
-      const dataStr = JSON.stringify({
-        vestiario: meuVestiario,
-        rendersManuais: rendersManuaisSalvos,
-        fundoTela: meuFundoAtual,
-        historicoLoja: historicoLoja
-      }, null, 2);
-      const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
-      const link = document.createElement('a');
-      link.href = dataUri; link.download = 'meu-vestiario-fortnite.json'; link.click();
-    }
-
-    function importarVestiario(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        try {
-          const imported = JSON.parse(e.target.result);
-
-          // Compatível com o formato antigo (arquivo era só um array de itens do vestiário)
-          // e com o novo (objeto com vestiario + rendersManuais + fundoTela + historicoLoja juntos).
-          const vestiarioImportado = Array.isArray(imported) ? imported : (imported.vestiario || []);
-          const rendersImportados = Array.isArray(imported) ? {} : (imported.rendersManuais || {});
-          const fundoImportado = Array.isArray(imported) ? null : (imported.fundoTela || null);
-          const historicoImportado = Array.isArray(imported) ? {} : (imported.historicoLoja || {});
-
-          meuVestiario = vestiarioImportado;
-          localStorage.setItem('meuVestiario', JSON.stringify(meuVestiario));
-
-          // Renders manuais são MESCLADOS com os que já existem (não apaga o que já estava salvo).
-          const qtdRendersAntes = Object.keys(rendersManuaisSalvos).length;
-          rendersManuaisSalvos = Object.assign({}, rendersManuaisSalvos, rendersImportados);
-          salvarRendersManuaisNoStorage();
-          const qtdRendersNovos = Object.keys(rendersManuaisSalvos).length - qtdRendersAntes;
-
-          // Histórico de loja (preço, tag "Loja de Itens" e renders) também é MESCLADO — se o
-          // mesmo item tiver registro nos dois, fica o mais recente (compara a data salva).
-          const qtdHistoricoAntes = Object.keys(historicoLoja).length;
-          Object.keys(historicoImportado).forEach(id => {
-            const atual = historicoLoja[id];
-            const novo = historicoImportado[id];
-            if (!atual || !atual.data || (novo.data && novo.data >= atual.data)) {
-              historicoLoja[id] = novo;
-            }
-          });
-          salvarHistoricoLoja();
-          const qtdHistoricoNovos = Object.keys(historicoLoja).length - qtdHistoricoAntes;
-
-          if (fundoImportado) {
-            meuFundoAtual = fundoImportado;
-            localStorage.setItem('fundoVestiario', fundoImportado);
-            aplicarFundoCSS(fundoImportado);
-          }
-
-          alert(`Importado ${vestiarioImportado.length} item(ns) do vestiário`
-            + (qtdRendersNovos > 0 ? `, ${qtdRendersNovos} render(s) manual(is) novo(s)` : '')
-            + (qtdHistoricoNovos > 0 ? `, ${qtdHistoricoNovos} registro(s) de loja novo(s)` : '')
-            + (fundoImportado ? ' e o fundo de tela' : '') + '!');
-          mostrarItens();
-        } catch (err) { alert("Arquivo inválido!"); }
-      };
-      reader.readAsText(file);
-    }
-
-    document.querySelectorAll('.tab[data-tab]').forEach(tab => {
-      tab.addEventListener('click', async () => {
-        // Remove a cor amarela de todas as abas e coloca na que foi clicada
-        document.querySelectorAll('.tab[data-tab]').forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
-        currentTab = tab.dataset.tab;
-
-        // Puxa todos os containers do HTML
-        const perfilContainer = document.getElementById('perfilContainer');
-        const mapContainer = document.getElementById('mapContainer');
-        const newsContainer = document.getElementById('newsContainer');
-        const controlsPrincipais = document.getElementById('controlsPrincipais');
-        const grid = document.getElementById('grid');
-        const sentinela = document.getElementById('sentinela');
-
-        // 1. ESCONDE TUDO PRIMEIRO (Isso evita que uma aba fique por cima da outra)
-        if (perfilContainer) perfilContainer.style.display = 'none';
-        if (mapContainer) mapContainer.style.display = 'none';
-        if (newsContainer) newsContainer.style.display = 'none';
-        if (controlsPrincipais) controlsPrincipais.style.display = 'none';
-        if (grid) grid.style.display = 'none';
-        if (sentinela) sentinela.style.display = 'none';
-
-        // 2. MOSTRA APENAS A ABA QUE FOI CLICADA
-        if (currentTab === 'perfil') {
-          if (perfilContainer) perfilContainer.style.display = 'block';
-          return; // Para a execução aqui
-        }
-
-        if (currentTab === 'map') {
-          if (mapContainer) mapContainer.style.display = 'block';
-          carregarMapa(); 
-          return;
-        }
-
-        if (currentTab === 'news') {
-          newsContainer.style.display = 'block';
-          carregarNoticias(); // Dispara o fetch da API
-          return;
-        }
-
-        // 3. SE FOR AS ABAS DE ITENS, MOSTRA A GRADE E A BARRA DE PESQUISA
-        if (controlsPrincipais) controlsPrincipais.style.display = 'flex';
-        if (grid) grid.style.display = 'grid';
-
-        if (currentTab === 'shop') {
-          mostrarItens(); 
-          await carregarLojaHoje();
-        }
-        mostrarItens();
-      });
-    });
-
-    // Botão flutuante "voltar ao topo" — aparece só depois de rolar bastante a página
-    window.addEventListener('scroll', () => {
-      const btnTopo = document.getElementById('btnVoltarTopo');
-      btnTopo.style.display = window.scrollY > 600 ? 'flex' : 'none';
-      btnTopo.style.alignItems = 'center';
-      btnTopo.style.justifyContent = 'center';
-    });
-
-    let mapaCarregado = false;
-    async function carregarMapa() {
-      if (mapaCarregado) return;
-      const container = document.getElementById('mapResult');
-      container.innerHTML = '<p style="color:#ccc;">Buscando o mapa mais recente...</p>';
-      
-      try {
-        // A API oficial do mapa, já pedindo os nomes em português
-        const res = await fetch('https://fortnite-api.com/v1/map?language=pt-BR');
-        const json = await res.json();
-        
-        // images.pois traz a imagem do mapa já com os nomes dos locais desenhados
-        if (json.data && json.data.images && json.data.images.pois) {
-          const urlMapa = json.data.images.pois;
-          container.innerHTML = `<img src="${urlMapa}" alt="Mapa do Fortnite" style="max-width:100%; border-radius:12px; border:2px solid #555; box-shadow:0 0 20px rgba(0,0,0,0.8); cursor:pointer;" onclick="window.open('${urlMapa}', '_blank')" title="Clique para abrir em alta resolução">`;
-          mapaCarregado = true;
-        } else {
-          container.innerHTML = '<p style="color:#ff7b7b;">Erro: Imagem do mapa não encontrada na API.</p>';
-        }
-      } catch (error) {
-        console.error("Erro ao carregar mapa:", error);
-        container.innerHTML = '<p style="color:#ff7b7b;">Não foi possível conectar à API do mapa.</p>';
-      }
-    }
-
-    // === SISTEMA DE NOTÍCIAS ===
-    let noticiasCarregadas = false;
-    async function carregarNoticias() {
-      if (noticiasCarregadas) return;
-      
-      const grid = document.getElementById('newsGrid');
-      grid.innerHTML = '<p style="color:#ccc; text-align:center; width:100%;">Buscando notícias no servidor...</p>';
-      
-      try {
-        const res = await fetch('https://fortnite-api.com/v2/news/br?language=pt-BR');
-        const json = await res.json();
-        
-        if (json.data && json.data.motds) {
-          const noticias = json.data.motds;
-          
-          if (noticias.length === 0) {
-            grid.innerHTML = '<p style="color:#888; text-align:center; width:100%;">Nenhuma novidade no momento.</p>';
-            return;
-          }
-
-          // Desenha os cards de notícias com a mesma estética do resto do site
-          grid.innerHTML = noticias.map(news => `
-            <div style="background:rgba(30, 30, 40, 0.863); border:2px solid #555; border-radius:12px; overflow:hidden; transition:transform 0.3s; display:flex; flex-direction:column; box-shadow: 0 4px 15px rgba(0,0,0,0.5);" onmouseover="this.style.transform='scale(1.02)'; this.style.borderColor='#ffcc00'" onmouseout="this.style.transform='scale(1)'; this.style.borderColor='#555'">
-              <img src="${news.image}" alt="${news.title}" style="width:100%; height:200px; object-fit:cover; border-bottom:2px solid #333;">
-              <div style="padding:18px; display:flex; flex-direction:column; flex:1;">
-                <span style="color:#4dc5ff; font-size:0.85rem; text-transform:uppercase; font-weight:bold; margin-bottom:8px;">${news.tabTitle || 'Atualização'}</span>
-                <h3 style="margin:0 0 12px 0; color:white; text-transform:uppercase; font-size:1.3rem; font-weight:900; line-height: 1.1; text-shadow: 0 0 8px rgba(0,0,0,0.8);">${news.title}</h3>
-                <p style="color:#ccc; font-size:0.95rem; margin:0; line-height:1.5; flex:1;">${news.body}</p>
-              </div>
-            </div>
-          `).join('');
-          
-          noticiasCarregadas = true;
-        } else {
-          grid.innerHTML = '<p style="color:#ff7b7b; text-align:center; width:100%;">As notícias estão indisponíveis no momento.</p>';
-        }
-      } catch (error) {
-        console.error("Erro ao carregar notícias:", error);
-        grid.innerHTML = '<p style="color:#ff7b7b; text-align:center; width:100%;">Erro de conexão ao buscar as novidades.</p>';
-      }
-    }
-
-    // === SISTEMA DE PERFIL (AVATAR E NOME) ===
-    let avatarAtual = localStorage.getItem('perfilAvatarLocker') || "https://fortnite-api.com/images/cosmetics/br/cid_028_athena_commando_f/icon.png";
-    let nomePerfilAtual = localStorage.getItem('perfilNomeLocker') || "";
-
-    // Aplica os dados salvos quando a página carrega (na tela principal E na aba)
-    document.getElementById('perfilAvatarImg').src = avatarAtual;
-    document.getElementById('tabPerfilAvatar').src = avatarAtual;
-    
-    document.getElementById('perfilNomeExibicao').value = nomePerfilAtual;
-    // Se não tiver nome salvo, mostra a palavra "Perfil" na aba para não ficar vazia
-    document.getElementById('tabPerfilNome').textContent = nomePerfilAtual || "Perfil";
-
-    function salvarNomeExibicao() {
-        const nome = document.getElementById('perfilNomeExibicao').value;
-        localStorage.setItem('perfilNomeLocker', nome);
-        
-        // Espelha o que está sendo digitado direto na aba lá em cima
-        document.getElementById('tabPerfilNome').textContent = nome || "Perfil";
-    }
-
-    function abrirModalAvatar() {
-        document.getElementById('avatarModalOverlay').style.display = 'flex';
-        renderizarListaAvatares('');
-    }
-
-    function fecharModalAvatar(event) {
-        if (event) event.preventDefault();
-        document.getElementById('avatarModalOverlay').style.display = 'none';
-    }
-
-    function renderizarListaAvatares(termoPesquisa = '') {
-        const grid = document.getElementById('avatarGrid');
-        
-        if (todosItens.length === 0) {
-            grid.innerHTML = '<p style="color:#ffcc00; width:100%; text-align:center;">Aguarde os itens carregarem...</p>';
-            return;
-        }
-
-        // Filtra apenas skins (outfits) que possuem ícone
-        let skins = todosItens.filter(i => i.type && i.type.value === 'outfit' && i.images && i.images.icon);
-
-        if (termoPesquisa) {
-            const busca = termoPesquisa.toLowerCase().trim();
-            skins = skins.filter(i => i.name && i.name.toLowerCase().includes(busca));
-        }
-
-        // Limita a 60 opções na tela para o modal abrir instantaneamente
-        const exibidas = skins.slice(0, 60);
-
-        if (exibidas.length === 0) {
-            grid.innerHTML = '<p style="color:#777; width:100%; text-align:center;">Nenhuma skin encontrada com esse nome.</p>';
-            return;
-        }
-
-        grid.innerHTML = exibidas.map(skin => `
-            <img loading="lazy" src="${skin.images.icon}" title="${skin.name}"
-                 onclick="selecionarAvatar('${skin.images.icon}')"
-                 style="width:85px; height:85px; border-radius:50%; background:#111; border:3px solid ${avatarAtual === skin.images.icon ? '#ffcc00' : '#444'}; cursor:pointer; transition:0.2s;"
-                 onmouseover="this.style.transform='scale(1.1)'; this.style.borderColor='#ffcc00'"
-                 onmouseout="this.style.transform='scale(1)'; this.style.borderColor='${avatarAtual === skin.images.icon ? '#ffcc00' : '#444'}'">
-        `).join('');
-    }
-
-    function selecionarAvatar(url) {
-        avatarAtual = url;
-        localStorage.setItem('perfilAvatarLocker', url);
-        
-        // Atualiza a foto principal e a miniatura da aba
-        document.getElementById('perfilAvatarImg').src = url;
-        document.getElementById('tabPerfilAvatar').src = url;
-        
-        fecharModalAvatar();
-    }
-
-    carregarTodos();
-  </script>
-  <button id="btnVoltarTopo" onclick="window.scrollTo({top:0, behavior:'smooth'})" title="Voltar ao topo"
-          style="display:none; position:fixed; bottom:30px; right:30px; width:52px; height:52px; border-radius:50%;
-                 background:#ffcc00; color:black; border:none; font-size:1.5rem; font-weight:bold; cursor:pointer;
-                 box-shadow:0 4px 14px rgba(0,0,0,0.5); z-index:200; transition:0.2s;">↑</button>
-
+    ITEMS=[];
+    for(const k in CAT)if(Array.isArray(d[k]))d[k].forEach(o=>{const it=mk(o,k);if(it){ITEMS.push(it);BY.set(it.id,it)}});
+    const ch=[...new Set(ITEMS.map(i=>i.chap).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt',{numeric:true}));
+    $('#chap').innerHTML='<option value="all">Todos os capítulos</option>'+ch.map(c=>`<option>${c}</option>`).join('');
+    buildTypes();update();applyBg();setTimeout(preloadShop,2000);
+  }catch(e){
+    $('#info').innerHTML='Não foi possível carregar a API (abra o arquivo no navegador, com internet). <button onclick="load()">Tentar de novo</button>';
+  }
+}
+
+const FEST=new Set(['baixo','bateria','baterias','guitarra','keytar','microfone','faixas']);
+function buildTypes(){
+  const ts=[...new Set(ITEMS.filter(i=>S.cat==='all'||i.cat===S.cat||(S.cat==='br'&&i.cat==='instruments')).map(i=>i.type))].filter(t=>!HIDE_TYPES.has(t.toLowerCase())).sort();
+  const op=t=>`<option>${esc(t)}</option>`;
+  const br=ts.filter(t=>!FEST.has(t.toLowerCase())).sort((a,b)=>(b.toLowerCase()==='traje')-(a.toLowerCase()==='traje')).map(op),fe=ts.filter(t=>FEST.has(t.toLowerCase())).map(op);
+  if(S.cat==='br'&&ITEMS.some(i=>i.cat==='tracks')&&!fe.some(o=>o.includes('>Faixas<')))fe.push('<option value="__tracks">Faixas</option>');
+  $('#type').innerHTML='<option value="all">Todos os tipos</option>'+(S.cat==='tracks'?'<option value="__br">← Voltar aos itens</option>':'')+
+    (br.length?`<optgroup label="Battle Royale">${br.join('')}</optgroup>`:'')+
+    (fe.length?`<optgroup label="Fortnite Festival">${fe.join('')}</optgroup>`:'');
+  $('#type').value=S.type='all';
+}
+
+function match(it,skip){
+  if(skip!=='cat'&&S.cat!=='all'&&!(it.cat===S.cat||(S.cat==='br'&&it.cat==='instruments')))return false;
+  if(skip!=='rar'&&S.rar!=='all'&&it.r!==S.rar)return false;
+  if(S.type!=='all'&&it.type!==S.type)return false;
+  if(S.chap!=='all'&&it.chap!==S.chap)return false;
+  if(S.set&&it.set!==S.set)return false;
+  if(S.col==='own'&&!own.has(it.id))return false;
+  if(S.col==='fav'&&!fav.has(it.id))return false;
+  return T.every(t=>it.blob.includes(t));
+}
+const score=it=>it.nn.startsWith(norm(S.q).trim())?0:it.nn.includes(norm(S.q).trim())?1:2;
+
+function update(){
+  document.body.classList.toggle('shop',S.col==='shop');
+  if(S.col==='shop'){V=[];renderShop();return}
+  T=norm(S.q).split(/\s+/).filter(Boolean);
+  const cc={},rc={};let all=0;
+  for(const it of ITEMS){
+    if(match(it,'cat')){cc[it.cat]=(cc[it.cat]||0)+1;all++}
+    if(match(it,'rar'))rc[it.r]=(rc[it.r]||0)+1;
+  }
+  $('#cats').innerHTML=`<button data-c="all" class="${S.cat==='all'?'on':''}">Tudo<small>${all}</small></button>`+
+    Object.keys(CAT).filter(k=>cc[k]||S.cat===k).map(k=>`<button data-c="${k}" class="${S.cat===k?'on':''}">${CAT[k]}<small>${cc[k]||0}</small></button>`).join('');
+  $('#rars').innerHTML=`<button data-r="all" class="${S.rar==='all'?'on':''}">Todas</button>`+
+    RANK.filter(r=>rc[r]||S.rar===r).map(r=>`<button data-r="${r}" style="--c:${RAR[r][1]}" class="${S.rar===r?'on':''}">${RAR[r][0]}<small>${rc[r]||0}</small></button>`).join('');
+  V=ITEMS.filter(i=>match(i));
+  const by=S.sort;
+  V.sort((a,b)=>by==='name'?a.name.localeCompare(b.name,'pt'):
+    by==='rar'?RANK.indexOf(b.r)-RANK.indexOf(a.r)||a.name.localeCompare(b.name,'pt'):
+    by==='new'?(b.added>a.added?1:-1):
+    (T.length?score(a)-score(b):0)||(b.added>a.added?1:-1));
+  $('#no').textContent=own.size?`(${own.size})`:'';
+  $('#info').innerHTML=`${V.length} itens`+(S.set?` · Set: <b>${esc(S.set)}</b> <button onclick="S.set='';update()">✕</button>`:'');
+  $('#grid').innerHTML='';shown=0;more();
+}
+
+const card=it=>`<article class="c" data-id="${esc(it.id)}" style="--c:${it.col}"><img loading="lazy" src="${esc(it.img)}" alt=""><span class="t">${esc(it.type)}</span><span class="f">${own.has(it.id)?'✅':''}${fav.has(it.id)?'⭐':''}</span><div class="n" title="${esc(it.name)}">${esc(it.name)}</div></article>`;
+function more(){
+  if(shown>=V.length)return;
+  const end=Math.min(shown+60,V.length);
+  $('#grid').insertAdjacentHTML('beforeend',V.slice(shown,end).map(card).join(''));shown=end;
+}
+new IntersectionObserver(e=>{if(e[0].isIntersecting)more()},{rootMargin:'600px'}).observe($('#more'));
+
+/* sugestões inteligentes */
+function suggest(){
+  const sg=$('#sg'),q=norm(S.q).trim();
+  if(q.length<2){sg.style.display='none';return}
+  const ts=q.split(/\s+/);
+  const names=ITEMS.filter(i=>ts.every(t=>i.nn.includes(t))).sort((a,b)=>(a.nn.startsWith(q)?0:1)-(b.nn.startsWith(q)?0:1)).slice(0,6);
+  const sets=new Map();
+  ITEMS.forEach(i=>{if(i.set&&ts.every(t=>norm(i.set).includes(t)))sets.set(i.set,(sets.get(i.set)||0)+1)});
+  const h=names.map(i=>`<div data-open="${esc(i.id)}"><img src="${esc(i.img)}" alt="">${esc(i.name)}<small>${esc(i.rn)}</small></div>`).join('')+
+    [...sets].slice(0,3).map(([s,n])=>`<div data-set="${esc(s)}">📦 Set: ${esc(s)}<small>${n} itens</small></div>`).join('');
+  sg.innerHTML=h;sg.style.display=h?'block':'none';
+}
+
+/* modal */
+function open(i){
+  cur=V.findIndex(x=>x.id===i);const it=BY.get(i);if(!it)return;
+  const bx=$('#box');bx.style.setProperty('--c',it.col);const ub=!!(it.bg&&art);bx.className='box'+(ub&&it.wide?' wide':'');
+  const rr=ub?[]:(RMAP.get(it.id)||[]),vs=SHOW_STYLES?(it.vars||[]):[],o0=ub?it.bg:(rr[0]||it.r3d||it.big);
+  const pk=[...BMAP.values()].filter(x=>x.i.includes(it.id)).sort((a,b)=>String(b.d).localeCompare(String(a.d))).slice(0,3);
+  const rsel=rr.length>1?`<div class="row" style="margin-bottom:4px">Visualização render</div><div class="sty">${rr.map((u,n)=>`<button class="sq r${n?'':' on'}" data-ri="${n}" title="Render ${n+1}"><img loading="lazy" src="${esc(u)}" alt=""></button>`).join('')}</div>`:'';
+  const sty=vs.length?`<div class="row" style="margin-bottom:4px">Estilos (${vs.length})</div><div class="sty"><button class="sq on" data-sty="-1" title="Padrão"><img src="${esc(o0)}" alt=""></button>${vs.map((v,n)=>`<button class="sq" data-sty="${n}" title="${esc((v.ch?v.ch+': ':'')+v.name)}"><img loading="lazy" src="${esc(v.img)}" alt=""></button>`).join('')}</div>`:'';
+  bx.innerHTML=`<div class="im${rr.length?' rn':''}"><img src="${esc(o0)}" data-o="${esc(o0)}" data-f="${esc(it.big)}" onerror="this.onerror=null;this.src=this.dataset.f" alt=""></div><div class="tx"><h2>${esc(it.name)}</h2>
+  <span class="badge">${esc(it.rn)}${it.series?' · '+esc(it.series):''}</span>
+  <p>${esc(it.desc)||'Sem descrição.'}</p>
+  ${rsel}
+  ${sty}
+  <div class="row">Tipo: <b>${esc(it.type)}</b></div>
+  ${it.set?`<div class="row">Set: <button class="lk" data-set="${esc(it.set)}">${esc(it.set)}</button></div>`:''}
+  ${it.intro?`<div class="row">Introdução: <b>${esc(it.intro)}</b></div>`:''}
+  ${it.added?`<div class="row">Adicionado: <b>${new Date(it.added).toLocaleDateString('pt-BR')}</b></div>`:''}
+  ${PMAP.has(it.id)?`<div class="row">Último preço na loja: <b>${money(PMAP.get(it.id).p)} V-Bucks</b>${PMAP.get(it.id).d?` · visto em ${new Date(PMAP.get(it.id).d).toLocaleDateString('pt-BR')}`:''}</div>`:''}
+  ${pk.length?`<div class="row">Em pacote: ${pk.map(x=>`<b>${esc(x.n)}</b> (${money(x.p)} V-Bucks${x.d?`, visto em ${new Date(x.d).toLocaleDateString('pt-BR')}`:''})`).join(' · ')}</div>`:''}
+  <div class="row">ID: <b>${esc(it.id)}</b></div>
+  <div class="act"><button data-t="own" class="${own.has(i)?'on':''}">${own.has(i)?'No vestiário':'Adicionar ao vestiário'}</button>
+  <button data-t="fav" class="${fav.has(i)?'on':''}">${fav.has(i)?'Favorito':'Favoritar'}</button>
+  ${it.bg?`<button data-art class="${ub?'on':''}">${ub?'Ver ícone':'Ver arte completa'}</button>`:''}<button data-nav="-1">← Anterior</button><button data-nav="1">Próximo →</button><button data-x>Fechar</button></div></div>`;
+  bx.dataset.id=i;$('#md').hidden=false;
+}
+function nav(d){if(cur<0)return;const n=V[cur+d];if(n)open(n.id)}
+let dirty=false,art=true;
+function refreshMarks(){
+  $('#no').textContent=own.size?`(${own.size})`:'';
+  document.querySelectorAll('#grid .c').forEach(c=>{const id=c.dataset.id;c.querySelector('.f').textContent=(own.has(id)?'✅':'')+(fav.has(id)?'⭐':'')});
+}
+function close(){
+  $('#md').hidden=true;
+  if(dirty&&S.col==='shop'){const y=scrollY;update();scrollTo(0,y)}
+  else if(dirty&&S.col!=='all')update();else refreshMarks();
+  dirty=false;art=true;
+}
+
+/* eventos */
+$('#q').addEventListener('input',e=>{S.q=e.target.value;update();suggest()});
+$('#type').onchange=e=>{
+  if(e.target.value==='__tracks'){S.cat='tracks';S.rar='all';buildTypes();update();return}
+  if(e.target.value==='__br'){S.cat='br';S.rar='all';buildTypes();update();return}
+  S.type=e.target.value;update()};
+$('#chap').onchange=e=>{S.chap=e.target.value;update()};
+$('#sort').onchange=e=>{S.sort=e.target.value;update()};
+$('#col').onclick=e=>{const b=e.target.closest('button');if(!b)return;S.col=b.dataset.v;
+  document.querySelectorAll('#col button').forEach(x=>x.classList.toggle('on',x===b));update()};
+$('#cats').onclick=e=>{const b=e.target.closest('button');if(!b)return;S.cat=b.dataset.c;S.rar='all';buildTypes();update()};
+$('#rars').onclick=e=>{const b=e.target.closest('button');if(!b)return;S.rar=b.dataset.r;update()};
+$('#grid').onclick=e=>{const c=e.target.closest('.c');if(c)open(c.dataset.id)};
+$('#sg').onclick=e=>{const d=e.target.closest('div');if(!d)return;$('#sg').style.display='none';
+  if(d.dataset.open)open(d.dataset.open);
+  if(d.dataset.set){S.set=d.dataset.set;S.q='';$('#q').value='';update()}};
+$('#box').onclick=e=>{const b=e.target.closest('button');if(!b)return;const id=$('#box').dataset.id;
+  if(b.dataset.sty!==undefined){const im=$('#box').querySelector('.im img'),n=+b.dataset.sty,v=(b.dataset.sid?eItems(SHOP.entries[+$('#box').dataset.e]).find(i=>i.id===b.dataset.sid):BY.get(id))?.vars?.[n];im.src=n<0||!v?im.dataset.o:v.img;$('#box').querySelectorAll('.sq').forEach(x=>x.classList.toggle('on',x===b));return}
+  if(b.dataset.ri!==undefined){const im=$('#box').querySelector('.im img');im.src=b.querySelector('img').src;$('#box').querySelectorAll('.sq').forEach(x=>x.classList.toggle('on',x===b));return}
+  if(b.dataset.t){const s=b.dataset.t==='own'?own:fav;s.has(id)?s.delete(id):s.add(id);dirty=true;sv('fn_own',own);sv('fn_fav',fav);open(id)}
+  else if(b.dataset.it){open(b.dataset.it)}
+  else if('addall' in b.dataset){const k=+$('#box').dataset.e;eItems(SHOP.entries[k]).forEach(i=>own.add(i.id));dirty=true;sv('fn_own',own);openEntry(k)}
+  else if('art' in b.dataset){art=!art;open(id)}
+  else if(b.dataset.nav)nav(+b.dataset.nav);
+  else if(b.dataset.set){S.set=b.dataset.set;S.cat='all';S.rar='all';close();buildTypes();update()}
+  else if('x' in b.dataset)close()};
+$('#md').onclick=e=>{if(e.target.id==='md')close()};
+document.addEventListener('click',e=>{if(!e.target.closest('.sw'))$('#sg').style.display='none'});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape')closeDD();
+  if(!$('#mp').hidden){if(e.key==='Escape')$('#mp').hidden=true;return}
+  if(!$('#cm').hidden){if(e.key==='Escape')closeCfg();return}
+  if(!$('#md').hidden){if(e.key==='Escape')close();if(e.key==='ArrowLeft')nav(-1);if(e.key==='ArrowRight')nav(1);return}
+  if(e.key==='/'&&document.activeElement.tagName!=='INPUT'){e.preventDefault();$('#q').focus()}
+  if(e.key==='Escape')$('#sg').style.display='none';
+});
+/* loja de itens */
+/* seções da loja cujo nome combina com isto vão para o final */
+/* Quadrados de estilos nas janelas (as imagens dos estilos vêm da API só como ícones pequenos). true para ligar. */
+const SHOW_STYLES=false;
+const MUSIC_RE=/m[úu]sica|music|faixa|jam/i;
+const SHOP_API='https://fortnite-api.com/v2/shop?language=pt-BR';let SHOP=null;
+function vOf(o){return(o.variants||[]).flatMap(v=>(v.options||[]).map(p=>({ch:v.channel||'',name:p.name||p.tag||'',img:p.image||''}))).filter(x=>x.img)}
+const eItems=e=>['brItems','tracks','instruments','cars','legoKits'].flatMap(k=>e[k]||[]).map(o=>{
+  const b=BY.get(o.id),v=vOf(o);
+  return b?((b.vars&&b.vars.length)||!v.length?b:{...b,vars:v}):{id:o.id,name:o.name||o.title||o.id,col:'#49acf2',img:o.images?.icon||o.images?.smallIcon||o.images?.small||o.albumArt||'',vars:v}});
+const NDA=id=>'https://fortnite-api.com/images/cosmetics/br/newdisplayassets/'+id+'/renderimage_0.png';
+const eFb=(e,its)=>e.bundle?.image||its[0]?.img||'';
+const eImg=(e,its)=>e.newDisplayAsset?.renderImages?.[0]?.image||(e.newDisplayAsset?.id?NDA(e.newDisplayAsset.id):'')||eFb(e,its);
+const fbAttr=(e,its)=>`data-f="${esc(eFb(e,its))}" onerror="this.onerror=null;this.src=this.dataset.f"`;
+const eName=(e,its)=>e.bundle?.name||its[0]?.name||e.devName||'Oferta';
+const money=n=>(n??0).toLocaleString('pt-BR');
+const price=e=>(SHOP.vbuckIcon?`<img class="vb" src="${esc(SHOP.vbuckIcon)}" alt="">`:'')+money(e.finalPrice)+(e.regularPrice>e.finalPrice?` <s>${money(e.regularPrice)}</s>`:'');
+/* renders 3D da loja aplicados também nas janelas dos itens da lista (id do item -> lista de renders) */
+const RMAP=new Map();
+try{Object.entries(JSON.parse(localStorage.getItem('fn_rend2')||'{}')).forEach(([k,v])=>RMAP.set(k,v))}catch{}
+const PMAP=new Map();
+try{Object.entries(JSON.parse(localStorage.getItem('fn_price')||'{}')).forEach(([k,v])=>PMAP.set(k,v))}catch{}
+const BMAP=new Map();
+try{Object.entries(JSON.parse(localStorage.getItem('fn_pack')||'{}')).forEach(([k,v])=>BMAP.set(k,v))}catch{}
+function trimPacks(){if(BMAP.size>400)[...BMAP].sort((a,b)=>String(a[1].d).localeCompare(String(b[1].d))).slice(0,BMAP.size-400).forEach(([k])=>BMAP.delete(k))}
+const saveMaps=()=>{trimPacks();try{localStorage.setItem('fn_rend2',JSON.stringify(Object.fromEntries(RMAP)));localStorage.setItem('fn_price',JSON.stringify(Object.fromEntries(PMAP)));localStorage.setItem('fn_pack',JSON.stringify(Object.fromEntries(BMAP)))}catch{}};
+function buildRmap(){
+  SHOP.entries.forEach(e=>{
+    const raw=['brItems','tracks','instruments','cars','legoKits'].flatMap(k=>e[k]||[]);
+    if(raw.length>1&&e.finalPrice!=null){const k=e.offerId||e.devName;if(k)BMAP.set(k,{n:eName(e,eItems(e)),i:raw.map(o=>o.id),p:e.finalPrice,r:e.regularPrice,d:SHOP.date||''})}
+    const outs=(e.brItems||[]).filter(o=>o.type?.value==='outfit');
+    const t=raw.length===1?raw[0]:(e.bundle?null:(outs.length===1?outs[0]:(outs.length===0?raw[0]:null)));if(!t)return;
+    if(raw.length===1&&e.finalPrice!=null)PMAP.set(t.id,{p:e.finalPrice,r:e.regularPrice,d:SHOP.date||''});
+    const rs=(e.newDisplayAsset?.renderImages||[]).map(r=>r.image).filter(Boolean);
+    if(rs.length&&(!RMAP.has(t.id)||RMAP.get(t.id).length<rs.length))RMAP.set(t.id,rs);
+  });
+  saveMaps();
+}
+let SHOPP=null;
+function preloadShop(){return SHOPP||(SHOPP=fetch(SHOP_API).then(r=>r.json()).then(j=>{if(!j.data||!j.data.entries)throw 0;SHOP=j.data;buildRmap()}).catch(()=>{SHOPP=null}))}
+async function renderShop(){
+  if(!SHOP){
+    $('#info').textContent='Carregando a loja…';
+    await preloadShop();
+    if(!SHOP){$('#info').innerHTML='Não foi possível carregar a loja. <button onclick="update()">Tentar de novo</button>';return}
+  }
+  if(S.col!=='shop')return;
+  const es=SHOP.entries,sec=new Map(),tk=norm(S.q).split(/\s+/).filter(Boolean);let n=0;
+  es.forEach((e,k)=>{
+    const its=eItems(e),b=norm(eName(e,its)+' '+its.map(i=>i.name).join(' '));
+    if(!tk.every(t=>b.includes(t)))return;
+    const g=e.layout?.name||'Outros';if(!sec.has(g))sec.set(g,[]);sec.get(g).push(k);n++;
+  });
+  $('#info').textContent=`${n} ofertas na loja`+(SHOP.date?` · atualizada em ${new Date(SHOP.date).toLocaleString('pt-BR')}`:'');
+  $('#shop').innerHTML=[...sec].sort((a,b)=>MUSIC_RE.test(a[0])-MUSIC_RE.test(b[0])).map(([g,ks])=>`<h3>${esc(g)}</h3><div class="sg">${ks.map(k=>{
+    const e=es[k],its=eItems(e),have=its.filter(i=>own.has(i.id)).length;
+    return `<article class="c" data-e="${k}" style="--c:${its[0]?.col||'#49acf2'}"><img loading="lazy" src="${esc(eImg(e,its))}" ${fbAttr(e,its)} alt=""><span class="t">${its.length>1?its.length+' itens':esc(its[0]?.type||'Item')}</span><span class="f">${have?'✅':''}</span><div class="n" title="${esc(eName(e,its))}">${esc(eName(e,its))}</div><div class="pr">${price(e)}</div></article>`}).join('')}</div>`).join('')||'<p>Nada encontrado.</p>';
+}
+function openEntry(k){
+  const e=SHOP.entries[k],its=eItems(e),bx=$('#box'),have=its.filter(i=>own.has(i.id)).length;
+  const rs=(e.newDisplayAsset?.renderImages||[]).map(r=>r.image).filter(Boolean);
+  const rsel=rs.length>1?`<div class="row" style="margin-bottom:4px">Visualização render</div><div class="sty">${rs.map((u,n)=>`<button class="sq r${n?'':' on'}" data-ri="${n}" title="Render ${n+1}"><img loading="lazy" src="${esc(u)}" alt=""></button>`).join('')}</div>`:'';
+  const sty=its.filter(i=>SHOW_STYLES&&i.vars&&i.vars.length).map((i,j)=>`<div class="row" style="margin-bottom:4px">Estilos${its.length>1?' – '+esc(i.name):''} (${i.vars.length})</div><div class="sty"><button class="sq${j?'':' on'}" data-sty="-1" title="Padrão"><img src="${esc(eImg(e,its))}" alt=""></button>${i.vars.map((v,n)=>`<button class="sq" data-sty="${n}" data-sid="${esc(i.id)}" title="${esc((v.ch?v.ch+': ':'')+v.name)}"><img loading="lazy" src="${esc(v.img)}" alt=""></button>`).join('')}</div>`).join('');
+  cur=-1;bx.className='box';bx.dataset.id='';bx.dataset.e=k;bx.style.setProperty('--c',its[0]?.col||'#49acf2');
+  bx.innerHTML=`<div class="im rn"><img src="${esc(eImg(e,its))}" data-o="${esc(eImg(e,its))}" ${fbAttr(e,its)} alt=""></div><div class="tx"><h2>${esc(eName(e,its))}</h2>
+  <span class="badge">${price(e)}</span>
+  ${e.bundle?.info?`<p>${esc(e.bundle.info)}</p>`:''}
+  <div class="row">Itens: <b>${its.length}</b>${have?` · <b>${have} no vestiário</b>`:''}</div>
+  <div class="row">${its.map(i=>BY.has(i.id)?`<button class="lk" data-it="${esc(i.id)}">${esc(i.name)}</button>`:esc(i.name)).join(' · ')}</div>
+  ${rsel}
+  ${sty}
+  ${e.outDate?`<div class="row">Sai da loja: <b>${new Date(e.outDate).toLocaleString('pt-BR')}</b></div>`:''}
+  <div class="act"><button data-addall>Adicionar ao vestiário</button><button data-x>Fechar</button></div></div>`;
+  $('#md').hidden=false;
+}
+$('#shop').onclick=e=>{const c=e.target.closest('.c');if(c)openEntry(+c.dataset.e)};
+/* mapa do jogo (API de mapa: mostra o mapa da temporada atual) */
+const MAP_API='https://fortnite-api.com/v1/map?language=pt-BR';let MAPD=null,mapPois=true;
+const mu=v=>typeof v==='string'?v:(v&&v.url)||'';
+async function openMap(){
+  $('#mp').hidden=false;
+  if(!MAPD){
+    $('#mpb').innerHTML='<h2 style="margin-top:0">Mapa do jogo</h2><div class="row">Carregando o mapa…</div>';
+    try{const j=await(await fetch(MAP_API)).json();MAPD=j.data;if(!MAPD||!MAPD.images)throw 0}
+    catch{MAPD=null;$('#mpb').innerHTML='<h2 style="margin-top:0">Mapa do jogo</h2><div class="row">Não foi possível carregar o mapa.</div><div class="act"><button data-r>Tentar de novo</button><button data-x>Fechar</button></div>';return}
+  }
+  drawMap();
+}
+/* a API não tem um campo de "temporada atual": pego o capítulo e a temporada mais novos entre os itens */
+function curSeason(){
+  let c=0,t=-1;
+  for(const i of ITEMS){const a=parseInt(i.ch),b=parseInt(i.se);if(!a||isNaN(b))continue;if(a>c||(a===c&&b>t)){c=a;t=b}}
+  return c?`Capítulo ${c}, Temporada ${t}`:'';
+}
+function drawMap(){
+  const im=MAPD.images,u=(mapPois?mu(im.pois):mu(im.blank))||mu(im.pois)||mu(im.blank);
+  $('#mpb').innerHTML=`<h2 style="margin-top:0">Mapa do jogo</h2>
+  ${curSeason()?`<div class="row"><b>${curSeason()}</b></div>`:''}
+  <div class="seg" id="mpm"><button data-p="1" class="${mapPois?'on':''}">Com nomes</button><button data-p="0" class="${mapPois?'':'on'}">Sem nomes</button></div>
+  <a href="${esc(u)}" target="_blank" rel="noopener" title="Abrir em tamanho real"><img class="mapimg" src="${esc(u)}" alt="Mapa do jogo" decoding="async" fetchpriority="low" style="margin:12px 0"></a>
+  <div class="act"><button data-x>Fechar</button></div>`;
+}
+$('#mapb').onclick=openMap;
+$('#mp').addEventListener('click',e=>{
+  if(e.target.id==='mp'||e.target.closest('[data-x]')){$('#mp').hidden=true;return}
+  if(e.target.closest('[data-r]')){openMap();return}
+  const b=e.target.closest('[data-p]');if(b&&MAPD){mapPois=b.dataset.p==='1';drawMap()}
+});
+/* configurações de fundo */
+const CFG0={mode:'dark',id:'',dim:.65,blur:0,gb:8,ga:.93};
+let CFG;try{CFG=Object.assign({},CFG0,JSON.parse(localStorage.getItem('fn_cfg')||'{}'))}catch{CFG={...CFG0}}
+const saveCfg=()=>{try{localStorage.setItem('fn_cfg',JSON.stringify(CFG))}catch{}};
+function applyVars(){const el=$('#bgl');el.style.setProperty('--dim',CFG.dim);el.style.setProperty('--blur',CFG.blur+'px');
+  const r=document.documentElement.style;r.setProperty('--gb',CFG.gb+'px');r.setProperty('--ga',CFG.ga)}
+function applyBg(){
+  applyVars();const el=$('#bgl');let id=CFG.id;
+  if(CFG.mode==='rand'){const ls=ITEMS.filter(i=>i.wide);if(ls.length)id=applyBg.r=applyBg.r||ls[Math.random()*ls.length|0].id}
+  const it=CFG.mode==='dark'?null:BY.get(id);
+  if(!it){el.style.backgroundImage='none';return}
+  const im=new Image();
+  im.onload=()=>el.style.backgroundImage=`url("${it.bg}")`;
+  im.onerror=()=>el.style.backgroundImage=`url("${it.img}")`;
+  im.src=it.bg;
+}
+function syncCfg(){
+  document.querySelectorAll('#cmm button').forEach(b=>b.classList.toggle('on',b.dataset.m===CFG.mode));
+  $('#cmp').style.display=CFG.mode==='ls'?'block':'none';
+  $('#cmd').value=Math.round(CFG.dim*100);$('#cmdv').textContent=Math.round(CFG.dim*100)+'%';
+  $('#cmb').value=CFG.blur;$('#cmbv').textContent=CFG.blur+'px';
+  $('#cgb').value=CFG.gb;$('#cgbv').textContent=CFG.gb+'px';
+  $('#cga').value=Math.round(CFG.ga*100);$('#cgav').textContent=Math.round(CFG.ga*100)+'%';
+}
+function renderPick(q){
+  const t=norm(q).split(/\s+/).filter(Boolean);
+  const l=ITEMS.filter(i=>i.wide&&t.every(x=>i.nn.includes(x))).sort((a,b)=>b.added>a.added?1:-1).slice(0,80);
+  $('#cmg').innerHTML=l.map(i=>`<img class="pi${i.id===CFG.id?' sel':''}" loading="lazy" data-id="${esc(i.id)}" title="${esc(i.name)}" src="${esc(i.img)}" alt="">`).join('')||'<div class="row">Nada encontrado.</div>';
+}
+function openCfg(){
+  $('#cb').innerHTML=`<h2 style="margin-top:0">Configurações</h2>
+  <div class="row"><b>Backup</b> (vestiário, favoritos, renders, preços e configurações)</div>
+  <div class="act"><button data-exp>Exportar arquivo</button><button data-imp>Importar arquivo</button></div>
+  <input id="cmf" type="file" accept=".json,application/json" hidden>
+  <div class="row" id="cmmsg"></div>
+  <div class="row" style="margin-top:16px">Fundo da página</div>
+  <div class="seg" id="cmm">${[['dark','Escuro'],['ls','Tela de carregamento'],['rand','Aleatória']].map(([m,t])=>`<button data-m="${m}">${t}</button>`).join('')}</div>
+  <div id="cmp"><input id="cms" type="search" placeholder="Buscar tela de carregamento…" style="width:100%;margin:12px 0 8px;padding:8px 12px;border-radius:8px;border:1px solid var(--l);background:var(--bg)"><div class="pg" id="cmg"></div></div>
+  <div class="row">Escurecer: <b id="cmdv"></b><input id="cmd" type="range" min="0" max="95" style="width:100%"></div>
+  <div class="row">Desfoque: <b id="cmbv"></b><input id="cmb" type="range" min="0" max="24" style="width:100%"></div>
+  <div class="row" style="margin-top:16px"><b>Painéis escuros</b> (barra do topo, botões e filtros)</div>
+  <div class="row">Desfoque do vidro: <b id="cgbv"></b><input id="cgb" type="range" min="0" max="30" style="width:100%"></div>
+  <div class="row">Opacidade: <b id="cgav"></b><input id="cga" type="range" min="20" max="100" style="width:100%"></div>
+  <div class="act"><button data-x>Fechar</button></div>`;
+  syncCfg();renderPick('');$('#cm').hidden=false;
+}
+const closeCfg=()=>{$('#cm').hidden=true};
+function expo(){
+  const o={app:'armario-fortnite',v:1,exportado:new Date().toISOString(),vestiario:[...own],favoritos:[...fav],renders:Object.fromEntries(RMAP),precos:Object.fromEntries(PMAP),config:CFG};
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(o)],{type:'application/json'}));
+  a.download='armario-fortnite-'+new Date().toISOString().slice(0,10)+'.json';document.body.append(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+  $('#cmmsg').textContent=`Exportado: ${own.size} no vestiário, ${fav.size} favoritos, ${RMAP.size} renders e ${PMAP.size} preços.`;
+}
+async function impo(f){
+  const msg=$('#cmmsg');if(!f)return;
+  try{
+    const o=JSON.parse(await f.text());if(o.app!=='armario-fortnite')throw 0;
+    const arr=x=>Array.isArray(x)?x.filter(i=>typeof i==='string'):[];
+    arr(o.vestiario).forEach(i=>own.add(i));arr(o.favoritos).forEach(i=>fav.add(i));
+    Object.entries(o.renders||{}).forEach(([k,v])=>{if(Array.isArray(v)&&v.length&&v.every(u=>typeof u==='string'&&/^https:\/\//.test(u))&&(!RMAP.has(k)||RMAP.get(k).length<v.length))RMAP.set(k,v)});
+    Object.entries(o.precos||{}).forEach(([k,v])=>{if(v&&typeof v.p==='number'&&(!PMAP.has(k)||String(v.d||'')>String(PMAP.get(k).d||'')))PMAP.set(k,{p:v.p,r:typeof v.r==='number'?v.r:v.p,d:String(v.d||'')})});
+    const c=o.config||{};
+    if(['dark','ls','rand'].includes(c.mode))CFG.mode=c.mode;
+    if(typeof c.id==='string')CFG.id=c.id;
+    for(const [k,lo,hi] of [['dim',0,.95],['blur',0,24],['gb',0,30],['ga',.2,1]])if(typeof c[k]==='number')CFG[k]=Math.min(hi,Math.max(lo,c[k]));
+    sv('fn_own',own);sv('fn_fav',fav);saveMaps();saveCfg();applyBg();syncCfg();update();
+    msg.textContent=`Importado: ${own.size} no vestiário, ${fav.size} favoritos, ${RMAP.size} renders e ${PMAP.size} preços.`;
+  }catch{msg.textContent='Esse arquivo não é um backup válido do armário.'}
+  $('#cmf').value='';
+}
+$('#cfg').onclick=openCfg;
+$('#cm').addEventListener('click',e=>{
+  if(e.target.id==='cm'||e.target.closest('[data-x]')){closeCfg();return}
+  if(e.target.closest('[data-exp]')){expo();return}
+  if(e.target.closest('[data-imp]')){$('#cmf').click();return}
+  const m=e.target.closest('[data-m]');
+  if(m){CFG.mode=m.dataset.m;saveCfg();syncCfg();applyBg();return}
+  const p=e.target.closest('.pi');
+  if(p){CFG.id=p.dataset.id;CFG.mode='ls';saveCfg();syncCfg();applyBg();renderPick($('#cms').value)}
+});
+$('#cm').addEventListener('change',e=>{if(e.target.id==='cmf')impo(e.target.files[0])});
+$('#cm').addEventListener('input',e=>{
+  if(e.target.id==='cms')renderPick(e.target.value);
+  if(e.target.id==='cmd'){CFG.dim=e.target.value/100;saveCfg();syncCfg();applyVars()}
+  if(e.target.id==='cmb'){CFG.blur=+e.target.value;saveCfg();syncCfg();applyVars()}
+  if(e.target.id==='cgb'){CFG.gb=+e.target.value;saveCfg();syncCfg();applyVars()}
+  if(e.target.id==='cga'){CFG.ga=e.target.value/100;saveCfg();syncCfg();applyVars()}
+});
+/* menus suspensos próprios (substituem a lista nativa do navegador) */
+const closeDD=()=>document.querySelectorAll('.dd.open').forEach(x=>x.classList.remove('open'));
+function makeDD(sel){
+  const w=document.createElement('div');w.className='dd';
+  const b=document.createElement('button');b.type='button';b.innerHTML='<span></span>';
+  const l=document.createElement('div');l.className='dl';
+  sel.classList.add('hid');sel.after(w);w.append(b,l);
+  const sync=()=>{
+    const o=sel.options[sel.selectedIndex];b.firstElementChild.textContent=o?o.textContent:'';
+    const row=o=>`<div data-i="${o.index}" class="${o.index===sel.selectedIndex?'cur':''}">${esc(o.textContent)}</div>`;
+    l.innerHTML=[...sel.children].map(c=>c.tagName==='OPTGROUP'?`<div class="dh">${esc(c.label)}</div>`+[...c.children].map(row).join(''):row(c)).join('');
+  };
+  new MutationObserver(sync).observe(sel,{childList:true});
+  b.onclick=e=>{e.stopPropagation();const was=w.classList.contains('open');closeDD();
+    if(!was){w.classList.add('open');sync();l.querySelector('.cur')?.scrollIntoView({block:'nearest'})}};
+  l.onclick=e=>{const d=e.target.closest('[data-i]');if(!d)return;
+    sel.selectedIndex=+d.dataset.i;sel.dispatchEvent(new Event('change'));closeDD();sync()};
+  sync();
+}
+['#type','#chap','#sort'].forEach(s=>makeDD($(s)));
+document.addEventListener('click',closeDD);
+applyVars();
+load();
+</script>
 </body>
 </html>
